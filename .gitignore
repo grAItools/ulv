@@ -1,0 +1,29 @@
+# Common OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# >>> ai-agent-harness (managed by copier) >>>
+# Personal overrides — never commit
+AGENTS.local.md
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/.last_*
+.claude/checkpoints/
+.claude/shell-snapshots/
+.opencode/local/
+.codex/auth.json
+.cursor/settings.local.json
+
+# Agent scratch space (team decision; comment out to commit)
+specs/*/scratch.md
+.agents/.cache/
+# <<< ai-agent-harness (managed by copier) <<<
+
+# Local-only content directories — dirs tracked via .gitkeep, contents ignored
+external/*
+!external/.gitkeep
+data/*
+!data/.gitkeep
