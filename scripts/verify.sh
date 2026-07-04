@@ -12,6 +12,12 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
+# Before the Python project is bootstrapped there is nothing to lint or test.
+if [ ! -f pyproject.toml ]; then
+  printf "verify: skipped — no pyproject.toml yet (project not bootstrapped).\n"
+  exit 0
+fi
+
 failed=0
 run() {
   local label="$1"; shift
