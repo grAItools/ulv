@@ -17,16 +17,16 @@ green.
 
 ## Phase 2 — Core data model & plugin architecture
 
-- [ ] `src/ulv/model.py`: Revision / Environment / Benchmark /
+- [x] `src/ulv/model.py`: Revision / Environment / Benchmark /
       ResultSeries / Dataset (+ `has_time_axis`)
-- [ ] `src/ulv/plugins.py`: InputFormat + OutputGenerator protocols,
+- [x] `src/ulv/plugins.py`: InputFormat + OutputGenerator protocols,
       registry (`register`/`get`/`names`), entry-point discovery
       (`ulv.input_formats`, `ulv.output_generators`)
-- [ ] `src/ulv/errors.py`: `UlvError` with `offending_input`
-- [ ] Tests: model invariants; dummy input + dummy output e2e via
+- [x] `src/ulv/errors.py`: `UlvError` with `offending_input`
+- [x] Tests: model invariants; dummy input + dummy output e2e via
       registry; entry-point discovery (monkeypatched)
-- [ ] Author ADR: plugin discovery mechanism
-- [ ] `make verify` green
+- [x] Author ADR: plugin discovery mechanism
+- [x] `make verify` green
 
 ## Phase 3 — ASV input plugin (files only, no git)
 
