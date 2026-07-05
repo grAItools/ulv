@@ -1,0 +1,9 @@
+{
+    "arch": "aarch64",
+    "cpu": "Apple M1 (8 cores)",
+    "machine": "leopard",
+    "num_cpu": "8",
+    "os": "macOS 14.2",
+    "ram": "16GB",
+    "version": 1
+}

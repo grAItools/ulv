@@ -1,0 +1,66 @@
+{
+    "commit_hash": "fcf8c079fae7ebad9f27bd31a819f0e4fdd85b99",
+    "date": 1367127519000,
+    "durations": {},
+    "env_name": "py2.7-Cython-numpy1.9",
+    "env_vars": {
+        "ULV_TEST": "1"
+    },
+    "params": {
+        "arch": "x86_64",
+        "cpu": "Intel(R) Core(TM) i5-2520M CPU @ 2.50GHz (4 cores)",
+        "lapack": null,
+        "machine": "cheetah",
+        "numpy": "1.9",
+        "os": "Linux (Fedora 20)",
+        "python": "2.7",
+        "ram": "8.2G"
+    },
+    "python": "2.7",
+    "requirements": {
+        "Cython": "",
+        "numpy": "1.9"
+    },
+    "result_columns": [
+        "result",
+        "params",
+        "version",
+        "started_at",
+        "duration",
+        "stats_ci_99_a",
+        "stats_ci_99_b",
+        "stats_q_25",
+        "stats_q_75",
+        "stats_number",
+        "stats_repeat",
+        "samples",
+        "profile"
+    ],
+    "results": {
+        "params_examples.mem_param": [
+            [
+                500,
+                750,
+                1000,
+                1500
+            ],
+            [
+                [
+                    "10",
+                    "20"
+                ],
+                [
+                    "2",
+                    "3"
+                ]
+            ]
+        ],
+        "time_units.time_unit_parse": [
+            [
+                0.0119
+            ],
+            []
+        ]
+    },
+    "version": 2
+}

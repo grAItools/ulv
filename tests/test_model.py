@@ -82,6 +82,15 @@ class TestReferentialIntegrity:
         with pytest.raises(ValueError, match="r99"):
             _dataset(series=(bad,))
 
+    def test_duplicate_benchmark_environment_series_pair_rejected(self):
+        duplicate = ResultSeries(
+            benchmark="time_sum",
+            environment="mach1-py311",
+            points={"r1": ResultPoint(value=9.0)},
+        )
+        with pytest.raises(ValueError, match="time_sum"):
+            _dataset(series=_dataset().series + (duplicate,))
+
     def test_benchmark_key_must_match_name(self):
         with pytest.raises(ValueError, match="time_sum"):
             _dataset(benchmarks={"wrong_key": Benchmark(name="time_sum")}, series=())

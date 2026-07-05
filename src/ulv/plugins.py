@@ -88,3 +88,16 @@ class Registry:
 
 input_formats = Registry(INPUT_GROUP)
 output_generators = Registry(OUTPUT_GROUP)
+
+
+def _register_builtins() -> None:
+    # Built-ins register at import time — before any lazy entry-point
+    # discovery runs — so a third-party entry point can never claim a
+    # built-in name first (ADR 0002). Imported here, not at the top,
+    # because plugin modules may themselves import ulv.plugins.
+    from ulv.inputs.asv import AsvInputFormat
+
+    input_formats.register(AsvInputFormat())
+
+
+_register_builtins()

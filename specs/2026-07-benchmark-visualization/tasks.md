@@ -30,16 +30,16 @@ green.
 
 ## Phase 3 — ASV input plugin (files only, no git)
 
-- [ ] Curate `tests/fixtures/asv_results/` from
+- [x] Curate `tests/fixtures/asv_results/` from
       `external/asv/test/example_results/` (2 machines, parameterized
       + env-matrix benchmarks)
-- [ ] `src/ulv/inputs/asv.py`: read machine.json / benchmarks.json /
+- [x] `src/ulv/inputs/asv.py`: read machine.json / benchmarks.json /
       result files (api_version 2), map losslessly to Dataset
-- [ ] Date-based revision ordering (no git)
-- [ ] Malformed input → `UlvError` naming the file
-- [ ] Register built-in input `asv`
-- [ ] Tests: values match raw JSON; params; multi-machine; error paths
-- [ ] `make verify` green
+- [x] Date-based revision ordering (no git)
+- [x] Malformed input → `UlvError` naming the file
+- [x] Register built-in input `asv`
+- [x] Tests: values match raw JSON; params; multi-machine; error paths
+- [x] `make verify` green
 
 ## Phase 4 — HTML generator core + `ulv build`
 

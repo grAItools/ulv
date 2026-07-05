@@ -78,7 +78,10 @@ class ResultPoint:
     value: object
     lower: float | None = None
     upper: float | None = None
-    stats: Mapping[str, object] | None = None
+    # A single mapping for scalar benchmarks; a tuple with one entry (or
+    # None) per parameter combination for parameterized ones.
+    stats: Mapping[str, object] | tuple[Mapping[str, object] | None, ...] | None = None
+    extra: Mapping[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -121,7 +124,15 @@ class Dataset:
                 )
         known_revisions = set(revision_ids)
         known_environments = set(environment_ids)
+        seen_pairs: set[tuple[str, str]] = set()
         for series in self.series:
+            pair = (series.benchmark, series.environment)
+            if pair in seen_pairs:
+                raise ValueError(
+                    f"duplicate series for benchmark {series.benchmark!r} "
+                    f"and environment {series.environment!r}"
+                )
+            seen_pairs.add(pair)
             if series.benchmark not in self.benchmarks:
                 raise ValueError(
                     f"series references unknown benchmark {series.benchmark!r}"

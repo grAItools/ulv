@@ -1,0 +1,59 @@
+{
+    "params_examples.ParamSuite.track_value": {
+        "code": "def track_value(self, p):\n    return self.value + self.count\n",
+        "name": "params_examples.ParamSuite.track_value",
+        "param_names": [
+            "param1"
+        ],
+        "params": [
+            [
+                "'a'",
+                "'b'",
+                "'c'"
+            ]
+        ],
+        "timeout": 60.0,
+        "type": "track",
+        "unit": "unit"
+    },
+    "params_examples.mem_param": {
+        "code": "def mem_param(n, m):\n    return [[0]*m]*n\n",
+        "name": "params_examples.mem_param",
+        "param_names": [
+            "number",
+            "depth"
+        ],
+        "params": [
+            [
+                "10",
+                "20"
+            ],
+            [
+                "2",
+                "3"
+            ]
+        ],
+        "timeout": 60.0,
+        "type": "memory",
+        "unit": "bytes"
+    },
+    "time_ci_small": {
+        "code": "foo\n",
+        "name": "time_ci_small",
+        "param_names": [],
+        "params": [],
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds"
+    },
+    "time_units.time_unit_parse": {
+        "code": "foo\n",
+        "name": "time_units.time_unit_parse",
+        "param_names": [],
+        "params": [],
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds"
+    },
+    "version": 2
+}
