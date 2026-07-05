@@ -120,22 +120,38 @@ def _point_from_cells(cells: dict, benchmark: Benchmark) -> ResultPoint:
     result = cells["result"]
     stored_params = cells["params"] or []
     stats = cells["stats"]
+    samples = cells["samples"]
 
     if benchmark.params:
         params = [list(axis) for axis in benchmark.params]
-        if stored_params and [list(p) for p in stored_params] != params:
+        if [list(p) for p in stored_params] != params:
+            # Values, stats and samples are positional — one slot per
+            # parameter combination — so when the stored axes differ from
+            # benchmarks.json all three go through the same remap
+            # (asv/results.py:339-376). An empty stored axis list means a
+            # formerly scalar benchmark: product(*[]) yields one () key,
+            # so every current combination maps to None.
             values = _compatible_results(result, stored_params, params)
-            stats = None  # stats indices no longer line up after remapping
+            if stats is not None:
+                stats = _compatible_results(stats, stored_params, params)
+            if samples is not None:
+                samples = _compatible_results(samples, stored_params, params)
         elif result is None:
             values = [None for _ in itertools.product(*params)]
         else:
             values = list(result)
         value: object = tuple(values)
-        point_stats = tuple(dict(s) if s else None for s in stats) if stats else None
+        if stats and any(s for s in stats):
+            point_stats = tuple(dict(s) if s else None for s in stats)
+        else:
+            point_stats = None
+        if samples is not None and all(s is None for s in samples):
+            samples = None
     else:
         value = result[0] if isinstance(result, list) else result
         point_stats = stats[0] if stats else None
 
+    cells = dict(cells, samples=samples)
     extra = {key: cells[key] for key in _POINT_EXTRA_COLUMNS if cells[key] is not None}
     return ResultPoint(value=value, stats=point_stats, extra=extra)
 
@@ -181,6 +197,20 @@ def _env_factors(result: dict) -> dict[str, str]:
     for key, value in result.get("env_vars", {}).items():
         factors[f"env-{key}"] = "" if value is None else str(value)
     return factors
+
+
+def _merge_mapping(target: dict, incoming: dict, env_id: str, path: Path) -> None:
+    """Union `incoming` into `target`; the same key reappearing with a
+    different value within one environment means the data is inconsistent,
+    which is reported rather than silently resolved."""
+    for key, value in incoming.items():
+        if key in target and target[key] != value:
+            raise UlvError(
+                f"conflicting values for {key!r} in environment {env_id!r}: "
+                f"{target[key]!r} vs {value!r} in {path}",
+                offending_input=str(path),
+            )
+        target[key] = value
 
 
 class AsvInputFormat:
@@ -289,14 +319,28 @@ class AsvInputFormat:
         env = environments.setdefault(
             env_id,
             {
-                "factors": _env_factors(data),
+                "factors": {},
                 "extra": {
                     "env_name": env_name,
                     "machine_info": machine_info,
+                    "python": data.get("python"),
+                    "requirements": {},
                     "durations": {},
                 },
             },
         )
+        # An environment usually spans several result files (one per
+        # commit); each file contributes its params, like asv's publish
+        # collects them per result (publish.py:143-149).
+        _merge_mapping(env["factors"], _env_factors(data), env_id, path)
+        # None and '' both mean "installed, no pinned version" (asv's
+        # publish coerces None to '' for env params); normalize before
+        # merging so the two spellings don't read as a conflict.
+        requirements = {
+            key: "" if value is None else value
+            for key, value in (data.get("requirements") or {}).items()
+        }
+        _merge_mapping(env["extra"]["requirements"], requirements, env_id, path)
         durations = data.get("durations") or {}
         if durations:
             env["extra"]["durations"][commit] = durations
@@ -308,11 +352,10 @@ class AsvInputFormat:
             cells = _decode_row(columns, row, path)
             stored_version = cells["version"]
             expected_version = benchmark.extra.get("version")
-            if (
-                stored_version is not None
-                and expected_version is not None
-                and stored_version != expected_version
-            ):
+            # Excluded whenever the stored version differs from the
+            # (possibly absent) benchmarks.json version, as asv does
+            # (asv/results.py:308-316).
+            if stored_version is not None and stored_version != expected_version:
                 continue
             points.setdefault((name, env_id), {})[commit] = _point_from_cells(
                 cells, benchmark

@@ -266,32 +266,179 @@ class TestMalformedInput:
             AsvInputFormat().load(tmp_path, {})
 
 
+def _benchmarks_entry(name, *, params=(), param_names=(), version=None):
+    entry = {
+        "name": name,
+        "param_names": list(param_names),
+        "params": [list(axis) for axis in params],
+        "type": "time",
+        "unit": "seconds",
+    }
+    if version is not None:
+        entry["version"] = version
+    return entry
+
+
+def _result_file(
+    results,
+    *,
+    commit="a" * 40,
+    date=1356631584000,
+    env_name="py3",
+    params=None,
+    requirements=None,
+    columns=("result", "params"),
+):
+    return {
+        "commit_hash": commit,
+        "date": date,
+        "env_name": env_name,
+        "env_vars": {},
+        "params": params or {"machine": "box", "python": "3.11"},
+        "python": "3.11",
+        "requirements": requirements or {},
+        "result_columns": list(columns),
+        "results": results,
+        "durations": {},
+        "version": 2,
+    }
+
+
 class TestVersionMismatch:
     def test_result_with_mismatched_benchmark_version_excluded(self, tmp_path):
         benchmarks = {
-            "time_x": {
-                "name": "time_x",
-                "param_names": [],
-                "params": [],
-                "type": "time",
-                "unit": "seconds",
-                "version": "expected",
-            },
+            "time_x": _benchmarks_entry("time_x", version="expected"),
             "version": 2,
         }
-        result = {
-            "commit_hash": "a" * 40,
-            "date": 1356631584000,
-            "env_name": "py3",
-            "env_vars": {},
-            "params": {"machine": "box", "python": "3.11"},
-            "python": "3.11",
-            "requirements": {},
-            "result_columns": ["result", "params", "version"],
-            "results": {"time_x": [[1.0], [], "stale"]},
-            "durations": {},
-            "version": 2,
-        }
+        result = _result_file(
+            {"time_x": [[1.0], [], "stale"]},
+            columns=("result", "params", "version"),
+        )
         _write_minimal_tree(tmp_path, benchmarks=benchmarks, result=result)
         dataset = AsvInputFormat().load(tmp_path, {})
         assert dataset.series_for("time_x") == ()
+
+    def test_stored_version_without_benchmarks_version_excluded(self, tmp_path):
+        # ASV excludes whenever the stored version differs from the (possibly
+        # absent) benchmarks.json version — see asv/results.py:308-316.
+        benchmarks = {"time_x": _benchmarks_entry("time_x"), "version": 2}
+        result = _result_file(
+            {"time_x": [[1.0], [], "stale"]},
+            columns=("result", "params", "version"),
+        )
+        _write_minimal_tree(tmp_path, benchmarks=benchmarks, result=result)
+        dataset = AsvInputFormat().load(tmp_path, {})
+        assert dataset.series_for("time_x") == ()
+
+    def test_result_without_stored_version_included(self, tmp_path):
+        benchmarks = {
+            "time_x": _benchmarks_entry("time_x", version="expected"),
+            "version": 2,
+        }
+        result = _result_file({"time_x": [[1.0], []]})
+        _write_minimal_tree(tmp_path, benchmarks=benchmarks, result=result)
+        dataset = AsvInputFormat().load(tmp_path, {})
+        assert len(dataset.series_for("time_x")) == 1
+
+
+class TestParamRemapping:
+    def test_scalar_result_for_now_parameterized_benchmark_is_all_none(self, tmp_path):
+        benchmarks = {
+            "time_x": _benchmarks_entry(
+                "time_x", params=[["1", "2"]], param_names=["n"]
+            ),
+            "version": 2,
+        }
+        result = _result_file({"time_x": [[1.0], []]})
+        _write_minimal_tree(tmp_path, benchmarks=benchmarks, result=result)
+        dataset = AsvInputFormat().load(tmp_path, {})
+        (series,) = dataset.series_for("time_x")
+        assert list(series.points["a" * 40].value) == [None, None]
+
+    def test_remap_keeps_stats_and_samples_aligned(self, tmp_path):
+        benchmarks = {
+            "time_x": _benchmarks_entry(
+                "time_x", params=[["1", "2"]], param_names=["n"]
+            ),
+            "version": 2,
+        }
+        # Stored with the parameter axis reversed relative to benchmarks.json.
+        result = _result_file(
+            {
+                "time_x": [
+                    [20.0, 10.0],
+                    [["2", "1"]],
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    [2, 1],
+                    None,
+                    [[20.5], [10.5]],
+                ]
+            },
+            columns=(
+                "result",
+                "params",
+                "version",
+                "started_at",
+                "duration",
+                "stats_ci_99_a",
+                "stats_ci_99_b",
+                "stats_q_25",
+                "stats_q_75",
+                "stats_number",
+                "stats_repeat",
+                "samples",
+            ),
+        )
+        _write_minimal_tree(tmp_path, benchmarks=benchmarks, result=result)
+        dataset = AsvInputFormat().load(tmp_path, {})
+        (series,) = dataset.series_for("time_x")
+        point = series.points["a" * 40]
+        assert list(point.value) == [10.0, 20.0]
+        assert point.stats == ({"number": 1}, {"number": 2})
+        assert point.extra["samples"] == [[10.5], [20.5]]
+
+
+class TestFactorMerging:
+    def test_factors_merged_across_result_files_of_same_env(self, tmp_path):
+        _write_minimal_tree(tmp_path)
+        second = _result_file(
+            {"time_x": [[2.0], []]},
+            commit="b" * 40,
+            date=1356631585000,
+            params={"machine": "box", "python": "3.11", "blas": "openblas"},
+        )
+        (tmp_path / "box" / "bbbbbbbb-py3.json").write_text(json.dumps(second))
+        dataset = AsvInputFormat().load(tmp_path, {})
+        (env,) = dataset.environments
+        assert env.factors["blas"] == "openblas"
+        assert env.factors["python"] == "3.11"
+
+    def test_conflicting_factor_value_names_the_file(self, tmp_path):
+        _write_minimal_tree(tmp_path)
+        second = _result_file(
+            {"time_x": [[2.0], []]},
+            commit="b" * 40,
+            date=1356631585000,
+            params={"machine": "box", "python": "3.12"},
+        )
+        (tmp_path / "box" / "bbbbbbbb-py3.json").write_text(json.dumps(second))
+        with pytest.raises(UlvError, match="bbbbbbbb-py3.json") as excinfo:
+            AsvInputFormat().load(tmp_path, {})
+        assert "python" in str(excinfo.value)
+
+
+class TestEnvironmentExtras:
+    def test_python_and_requirements_preserved(self, dataset):
+        (env,) = [e for e in dataset.environments if e.id == ENV_C18]
+        assert env.extra["python"] == "2.7"
+        # Cython appears only in this file's requirements, not in its params.
+        raw = _raw("cheetah", "05d283b9-py2.7-Cython-numpy1.8.json")
+        assert "Cython" in raw["requirements"]
+        assert env.extra["requirements"]["Cython"] == raw["requirements"]["Cython"]
+        assert env.extra["requirements"]["numpy"] == "1.8"
