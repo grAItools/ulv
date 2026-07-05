@@ -96,8 +96,10 @@ def _register_builtins() -> None:
     # built-in name first (ADR 0002). Imported here, not at the top,
     # because plugin modules may themselves import ulv.plugins.
     from ulv.inputs.asv import AsvInputFormat
+    from ulv.outputs.html.generator import HtmlOutputGenerator
 
     input_formats.register(AsvInputFormat())
+    output_generators.register(HtmlOutputGenerator())
 
 
 _register_builtins()

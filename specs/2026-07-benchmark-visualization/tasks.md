@@ -43,19 +43,20 @@ green.
 
 ## Phase 4 — HTML generator core + `ulv build`
 
-- [ ] Author ADR: vendoring ASV frontend + third-party JS licensing
-- [ ] Vendor `asv/www/` into `src/ulv/outputs/html/static/` (drop
+- [x] Author ADR: vendoring ASV frontend + third-party JS licensing
+- [x] Vendor `asv/www/` into `src/ulv/outputs/html/static/` (drop
       regressions.*), fetch pinned CDN libs into `static/vendor/`,
       patch `index.html` for local-only relative assets, add
       `LICENSES/` + `VENDORED.md`
-- [ ] Generator: copy static tree, emit `index.json` + `info.json`,
+- [x] Generator: copy static tree, emit `index.json` + `info.json`,
       build in temp dir, atomic swap, nothing on failure
-- [ ] Port `Graph.get_file_path` path logic (byte-compatible with
+- [x] Port `Graph.get_file_path` path logic (byte-compatible with
       `asv.js:graph_to_path`) + unit tests
-- [ ] CLI `build` subcommand; `UlvError` → stderr + exit 1
-- [ ] Tests: static-only output; no `https?://` asset refs; served
+- [x] CLI `build` subcommand; `UlvError` → stderr + exit 1
+- [x] Tests: static-only output; no `https?://` asset refs; served
       from subdirectory, all assets 200; failure → no output dir
-- [ ] `make verify` green; manual browser smoke of skeleton site
+- [x] `make verify` green; manual browser smoke of skeleton site
+      (pending user browser pass — serve instructions in hand-off)
 
 ## Phase 5 — Graph data: series, params, machines, summaries
 
