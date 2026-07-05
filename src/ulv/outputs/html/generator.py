@@ -115,19 +115,25 @@ class HtmlOutputGenerator:
     def _build_graphs(self, dataset: Dataset) -> tuple[GraphSet, dict]:
         """One graph per (benchmark × environment params × branch), as
         publish.py:203-236 builds them: env factors plus the revision's
-        branch, missing params filled with None and None added to that
-        axis' value set."""
+        branch(es), missing params filled with None and None added to
+        that axis' value set. A commit on several configured branches is
+        graphed on each of them, like asv's result × containing-branch
+        loop."""
         env_by_id = {env.id: env for env in dataset.environments}
         revision_index = {rev.id: i for i, rev in enumerate(dataset.revisions)}
         # publish coerces None param values to '' (publish.py:224-226);
         # an unknown branch gets the same spelling.
-        branch_of = {rev.id: rev.branch or "" for rev in dataset.revisions}
+        branches_of = {
+            rev.id: (rev.branches or (rev.branch or "",)) for rev in dataset.revisions
+        }
 
         axis_values: dict[str, set] = {}
         for env in dataset.environments:
             for factor, value in env.factors.items():
                 axis_values.setdefault(factor, set()).add(value)
-        axis_values.setdefault("branch", set()).update(branch_of.values())
+        axis_values.setdefault("branch", set())
+        for branches in branches_of.values():
+            axis_values["branch"].update(branches)
 
         graph_set = GraphSet()
         for series in dataset.series:
@@ -145,15 +151,16 @@ class HtmlOutputGenerator:
                     value = point.value
                     weight = get_weight(point.stats)
 
-                cur_params = dict(environment.factors)
-                cur_params["branch"] = branch_of[revision_id]
-                for key in axis_values:
-                    if key not in cur_params:
-                        cur_params[key] = None
-                        axis_values[key].add(None)
+                for branch in branches_of[revision_id]:
+                    cur_params = dict(environment.factors)
+                    cur_params["branch"] = branch
+                    for key in axis_values:
+                        if key not in cur_params:
+                            cur_params[key] = None
+                            axis_values[key].add(None)
 
-                graph = graph_set.get_graph(benchmark.name, cur_params)
-                graph.add_data_point(revision_index[revision_id], value, weight)
+                    graph = graph_set.get_graph(benchmark.name, cur_params)
+                    graph.add_data_point(revision_index[revision_id], value, weight)
         return graph_set, axis_values
 
     def _write_summarylist(
@@ -244,6 +251,11 @@ class HtmlOutputGenerator:
             if machine and isinstance(info, dict):
                 machines[machine] = info
 
+        tags = {}
+        for i, revision in enumerate(dataset.revisions):
+            for tag in revision.tags:
+                tags[tag] = i
+
         return {
             "project": dataset.project,
             "project_url": options.get("project_url", "#"),
@@ -255,6 +267,6 @@ class HtmlOutputGenerator:
             "graph_param_list": graph_param_list,
             "benchmarks": benchmarks,
             "machines": machines,
-            "tags": {},
+            "tags": tags,
             "pages": _PAGES,
         }

@@ -67,6 +67,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--show-commit-url",
         help="URL prefix for commit links (commit hash is appended)",
     )
+    build.add_argument(
+        "--repo",
+        help="path to the project's git repository, enabling commit "
+        "ordering, dates, tags, and branch enrichment",
+    )
+    build.add_argument(
+        "--branches",
+        help="comma-separated branches to attribute results to "
+        "(requires --repo; default: the repository's checked-out branch)",
+    )
 
     serve = subparsers.add_parser(
         "serve",
@@ -105,6 +115,8 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "project": args.project,
             "project_url": args.project_url,
             "show_commit_url": args.show_commit_url,
+            "repo": args.repo,
+            "branches": args.branches,
         },
     )
     for key in ("input_format", "input_dir", "output_dir"):
@@ -116,7 +128,14 @@ def _cmd_build(args: argparse.Namespace) -> int:
             )
 
     input_format = plugins.input_formats.get(settings.input_format)
-    dataset = input_format.load(settings.input_dir, {"project": settings.project})
+    dataset = input_format.load(
+        settings.input_dir,
+        {
+            "project": settings.project,
+            "repo": settings.repo,
+            "branches": settings.branch_list(),
+        },
+    )
     generator = plugins.output_generators.get("html")
     generator.generate(
         dataset,

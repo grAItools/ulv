@@ -17,12 +17,19 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class Revision:
-    """One point on the history axis (typically a commit)."""
+    """One point on the history axis (typically a commit).
+
+    `branches` lists every configured branch containing the commit —
+    like asv, a result is attributed to (and graphed on) each of them.
+    `branch` is the single label used by input formats whose metadata
+    names exactly one branch per point (e.g. BMF sidecar files).
+    """
 
     id: str
     commit_hash: str | None = None
     date: dt.datetime | None = None
     branch: str | None = None
+    branches: tuple[str, ...] = ()
     tags: tuple[str, ...] = ()
 
 

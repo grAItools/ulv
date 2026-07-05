@@ -21,7 +21,7 @@ FILE_VALUES = {
 }
 
 FLAG_VALUES = {
-    "input_format": "asv",
+    "input_format": "flag-asv",
     "input_dir": "flag-results",
     "output_dir": "flag-site",
     "project": "flagproj",
@@ -75,6 +75,11 @@ class TestPrecedence:
         settings = load_settings(config, dict(FLAG_VALUES))
         for key, value in FLAG_VALUES.items():
             assert getattr(settings, key) == value
+
+    def test_empty_string_flag_overrides_file_value(self, tmp_path):
+        config = _write_toml(tmp_path / "ulv.toml", FILE_VALUES)
+        settings = load_settings(config, {"show_commit_url": ""})
+        assert settings.show_commit_url == ""
 
     def test_unset_flags_do_not_mask_file_values(self, tmp_path):
         config = _write_toml(tmp_path / "ulv.toml", FILE_VALUES)

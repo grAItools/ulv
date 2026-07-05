@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 
 from ulv.errors import UlvError
+from ulv.gitrepo import GitRepo
 from ulv.model import (
     Benchmark,
     Dataset,
@@ -213,6 +214,46 @@ def _merge_mapping(target: dict, incoming: dict, env_id: str, path: Path) -> Non
         target[key] = value
 
 
+def _git_revisions(
+    repo_path, configured_branches: list[str], revision_dates: dict[str, int]
+) -> tuple[Revision, ...]:
+    """Repository-enriched revisions: rev-list topological order instead
+    of result-date order, committer dates, tags, and attribution to every
+    configured branch containing the commit (publish.py:169-236)."""
+    repo = GitRepo(repo_path)
+    branch_names = configured_branches or [repo.default_branch()]
+    membership = {name: set(repo.branch_commits(name)) for name in branch_names}
+
+    order = {commit: i for i, commit in enumerate(repo.rev_order())}
+    for commit in revision_dates:
+        if commit not in order:
+            raise UlvError(
+                f"result commit {commit} not found in repository {repo_path}",
+                offending_input=commit,
+            )
+
+    tags_by_commit: dict[str, list[str]] = {}
+    for tag, commit in repo.tags().items():
+        tags_by_commit.setdefault(commit, []).append(tag)
+
+    revisions = []
+    for commit in sorted(revision_dates, key=order.__getitem__):
+        branches = tuple(name for name in branch_names if commit in membership[name])
+        revisions.append(
+            Revision(
+                id=commit,
+                commit_hash=commit,
+                date=dt.datetime.fromtimestamp(
+                    repo.commit_date_ms(commit) / 1000, tz=dt.UTC
+                ),
+                branch=branches[0] if branches else None,
+                branches=branches,
+                tags=tuple(tags_by_commit.get(commit, ())),
+            )
+        )
+    return tuple(revisions)
+
+
 class AsvInputFormat:
     """Built-in `asv` input format (results directory, no git required)."""
 
@@ -262,16 +303,27 @@ class AsvInputFormat:
                 offending_input=str(source),
             )
 
-        revisions = tuple(
-            Revision(
-                id=commit,
-                commit_hash=commit,
-                date=dt.datetime.fromtimestamp(date / 1000, tz=dt.UTC),
+        options = options or {}
+        repo_path = options.get("repo")
+        configured_branches = list(options.get("branches") or [])
+        if configured_branches and not repo_path:
+            raise UlvError(
+                "'branches' is configured but 'repo' is not; branch "
+                "attribution needs the project's git repository"
             )
-            for commit, date in sorted(
-                revision_dates.items(), key=lambda item: (item[1], item[0])
+        if repo_path:
+            revisions = _git_revisions(repo_path, configured_branches, revision_dates)
+        else:
+            revisions = tuple(
+                Revision(
+                    id=commit,
+                    commit_hash=commit,
+                    date=dt.datetime.fromtimestamp(date / 1000, tz=dt.UTC),
+                )
+                for commit, date in sorted(
+                    revision_dates.items(), key=lambda item: (item[1], item[0])
+                )
             )
-        )
         environment_objs = tuple(
             Environment(id=env_id, factors=env["factors"], extra=env["extra"])
             for env_id, env in sorted(environments.items())

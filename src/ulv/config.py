@@ -30,6 +30,14 @@ class Settings:
     project: str = ""
     project_url: str = "#"
     show_commit_url: str = ""
+    # Optional git enrichment (spec Decision 4). `branches` is a
+    # comma-separated list — config values stay plain strings so the
+    # file and the flag share one spelling.
+    repo: str | None = None
+    branches: str = ""
+
+    def branch_list(self) -> list[str]:
+        return [name.strip() for name in self.branches.split(",") if name.strip()]
 
 
 _FIELD_NAMES = {field.name for field in fields(Settings)}

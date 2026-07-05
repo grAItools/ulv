@@ -83,14 +83,14 @@ green.
 
 ## Phase 7 — Optional git enrichment (ASV input)
 
-- [ ] `src/ulv/gitrepo.py`: git-CLI wrapper (rev-list order, dates,
+- [x] `src/ulv/gitrepo.py`: git-CLI wrapper (rev-list order, dates,
       tags, branch membership); configured-but-unusable repo → error
-- [ ] Wire enrichment into ASV input + index.json
+- [x] Wire enrichment into ASV input + index.json
       (`revision_to_date`, tags, branch param, `show_commit_url`)
-- [ ] Tests: synthetic git repo fixture; with-repo vs without-repo on
+- [x] Tests: synthetic git repo fixture; with-repo vs without-repo on
       same results — both build, ordering/dates/links differ as
       specified
-- [ ] `make verify` green
+- [x] `make verify` green
 
 ## Phase 8 — BMF input + snapshot view
 
