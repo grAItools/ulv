@@ -140,6 +140,10 @@ green.
 - [ ] Crawl test: ASV site + BMF multi-testbed site served from
       subdirectory, all assets 200, no external URLs; manual browser
       pass on both
+- [ ] Wire Phase 7 git enrichment into the BMF input (plan Phase 8
+      step 2 says it "applies when configured") or record the deferral
+      in plan.md/an ADR — `bmf` currently rejects the `repo` setting
+      with an explicit UlvError
 - [ ] Update `docs/architecture.md` (module map, ADR links);
       `CHANGELOG.md` entry; confirm 4 ADRs exist
 - [ ] `make verify` green; run `/verify` (Reviewer)

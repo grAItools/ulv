@@ -71,9 +71,11 @@ def history_dir(tmp_path):
     _write(root / "b.json", BMF_THREE)
     _write(root / "a.json", BMF_TWO)
     _write(root / "c.json", BMF_ONE)
-    # mtimes: newest file (by metadata) gets the oldest mtime.
-    os.utime(root / "c.json", (2_000_000_000, 2_000_000_000))
-    os.utime(root / "a.json", (1_500_000_000, 1_500_000_000))
+    # mtimes chosen so that neither ascending nor descending mtime order
+    # (b,c,a / a,c,b) matches the metadata order (c,a,b) — a sorter using
+    # timestamps in either direction cannot coincidentally pass.
+    os.utime(root / "a.json", (2_000_000_000, 2_000_000_000))
+    os.utime(root / "c.json", (1_500_000_000, 1_500_000_000))
     os.utime(root / "b.json", (1_000_000_000, 1_000_000_000))
     manifest = _manifest(
         root,
@@ -238,6 +240,55 @@ class TestManifestOrdering:
         assert dataset.environment_axes()["testbed"] == ("linux-x64", "macos-arm")
 
 
+class TestMetadataPrecedence:
+    def test_flags_beat_manifest_for_single_file(self, tmp_path):
+        root = tmp_path / "bmf"
+        root.mkdir()
+        _write(root / "a.json", BMF_ONE)
+        manifest = _manifest(
+            root,
+            {"a.json": {"commit": "manifest0", "date": "2026-01-01T00:00:00Z"}},
+        )
+        dataset = _load(
+            root,
+            manifest=str(manifest),
+            commit="flagcommit",
+            date="2026-05-01T00:00:00Z",
+        )
+        (revision,) = dataset.revisions
+        assert revision.commit_hash == "flagcommit"
+        assert revision.date == dt.datetime(2026, 5, 1, tzinfo=dt.UTC)
+
+    def test_flag_overrides_single_manifest_field(self, tmp_path):
+        root = tmp_path / "bmf"
+        root.mkdir()
+        _write(root / "a.json", BMF_ONE)
+        manifest = _manifest(
+            root,
+            {
+                "a.json": {
+                    "commit": "manifest0",
+                    "date": "2026-01-01T00:00:00Z",
+                    "branch": "main",
+                }
+            },
+        )
+        dataset = _load(root, manifest=str(manifest), testbed="linux-x64")
+        (revision,) = dataset.revisions
+        # untouched manifest fields survive; the flag adds/overrides its own
+        assert revision.commit_hash == "manifest0"
+        assert revision.branch == "main"
+        (environment,) = dataset.environments
+        assert environment.factors == {"testbed": "linux-x64"}
+
+
+class TestGitEnrichmentUnsupported:
+    def test_repo_option_rejected(self, tmp_path):
+        source = _write(tmp_path / "snap.json", BMF_ONE)
+        with pytest.raises(UlvError, match="bmf"):
+            _load(source, repo=str(tmp_path))
+
+
 class TestFilenamePattern:
     def test_pattern_extracts_commit_and_date(self, tmp_path):
         root = tmp_path / "bmf"
@@ -267,6 +318,13 @@ class TestFilenamePattern:
         with pytest.raises(UlvError, match="flavour"):
             _load(root, filename_pattern="{flavour}.json")
 
+    def test_duplicated_pattern_field_rejected(self, tmp_path):
+        root = tmp_path / "bmf"
+        root.mkdir()
+        _write(root / "a.json", BMF_ONE)
+        with pytest.raises(UlvError, match="commit"):
+            _load(root, filename_pattern="{commit}_{commit}.json")
+
 
 class TestMetadataErrors:
     def test_multi_file_without_any_metadata_named(self, tmp_path):
@@ -284,6 +342,30 @@ class TestMetadataErrors:
         _write(root / "b.json", BMF_TWO)
         with pytest.raises(UlvError, match="commit"):
             _load(root, commit="abc", date="2026-01-01")
+
+    def test_conflicting_dates_for_shared_commit_rejected(self, tmp_path):
+        root = tmp_path / "bmf"
+        root.mkdir()
+        _write(root / "a.json", BMF_ONE)
+        _write(root / "b.json", BMF_TWO)
+        manifest = _manifest(
+            root,
+            {
+                "a.json": {"commit": "same0000", "date": "2026-01-01T00:00:00Z"},
+                "b.json": {"commit": "same0000", "date": "2026-02-01T00:00:00Z"},
+            },
+        )
+        with pytest.raises(UlvError, match="same0000"):
+            _load(root, manifest=str(manifest))
+
+    def test_lone_file_with_only_testbed_flag_is_snapshot(self, tmp_path):
+        source = _write(tmp_path / "snap.json", BMF_ONE)
+        dataset = _load(source, testbed="linux-x64")
+        assert dataset.has_time_axis is False
+        (revision,) = dataset.revisions
+        assert revision.commit_hash is None
+        (environment,) = dataset.environments
+        assert environment.factors == {"testbed": "linux-x64"}
 
     def test_naive_date_treated_as_utc(self, tmp_path):
         source = _write(tmp_path / "snap.json", BMF_ONE)

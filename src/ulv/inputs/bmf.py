@@ -158,6 +158,7 @@ def _load_manifest(path: Path) -> dict:
 
 def _pattern_regex(pattern: str) -> re.Pattern:
     regex = ""
+    seen: set[str] = set()
     for part in re.split(r"(\{[a-z_]+\})", pattern):
         if part.startswith("{") and part.endswith("}"):
             field = part[1:-1]
@@ -167,6 +168,12 @@ def _pattern_regex(pattern: str) -> re.Pattern:
                     f"unknown field {field!r} in filename_pattern "
                     f"{pattern!r} (known fields: {known})"
                 )
+            if field in seen:
+                raise UlvError(
+                    f"field {field!r} appears more than once in "
+                    f"filename_pattern {pattern!r}"
+                )
+            seen.add(field)
             regex += f"(?P<{field}>.+?)"
         else:
             regex += re.escape(part)
@@ -180,6 +187,12 @@ class BmfInputFormat:
 
     def load(self, source, options) -> Dataset:
         options = options or {}
+        if options.get("repo"):
+            raise UlvError(
+                "git enrichment is not supported for the 'bmf' input yet; "
+                "remove the 'repo' setting or order results via metadata "
+                "dates"
+            )
         source = Path(source)
         files = self._collect_files(source, options)
         metadata = self._resolve_metadata(files, options)
@@ -192,12 +205,21 @@ class BmfInputFormat:
         for path in files:
             meta = metadata[path.name]
             revision_id = meta.get("commit") or _SNAPSHOT_ID
-            if revision_id not in revisions:
-                revisions[revision_id] = Revision(
-                    id=revision_id,
-                    commit_hash=meta.get("commit"),
-                    date=meta.get("date"),
-                    branch=meta.get("branch"),
+            candidate = Revision(
+                id=revision_id,
+                commit_hash=meta.get("commit"),
+                date=meta.get("date"),
+                branch=meta.get("branch"),
+            )
+            existing = revisions.get(revision_id)
+            if existing is None:
+                revisions[revision_id] = candidate
+            elif existing != candidate:
+                raise UlvError(
+                    f"conflicting metadata for commit {revision_id!r}: "
+                    f"{path.name} disagrees with an earlier file "
+                    f"(date/branch must match for a shared commit)",
+                    offending_input=str(path),
                 )
             testbed = meta.get("testbed")
             env_id = testbed or _DEFAULT_ENV
@@ -256,10 +278,11 @@ class BmfInputFormat:
     def _resolve_metadata(self, files: list[Path], options) -> dict[str, dict]:
         """Per-file metadata dicts (parsed date, commit, branch, testbed).
 
-        Sources in order of specificity: single-file CLI flags, a
-        manifest file, or a filename pattern. Multi-file input where any
-        file lacks metadata is an error naming that file — ordering is
-        never inferred from file order or timestamps.
+        The manifest or filename pattern supplies the base entry per
+        file; single-file CLI flags then override individual fields
+        (Decision 7: flags always win). Multi-file input where any file
+        lacks metadata is an error naming that file — ordering is never
+        inferred from file order or timestamps.
         """
         flag_meta = {
             field: options.get(field)
@@ -277,7 +300,7 @@ class BmfInputFormat:
                 f"or filename_pattern instead"
             )
 
-        metadata: dict[str, dict] = {}
+        raw: dict[str, dict] = {}
         if manifest:
             manifest_path = Path(manifest)
             entries = _load_manifest(manifest_path)
@@ -295,7 +318,7 @@ class BmfInputFormat:
                         f"no manifest entry for {path.name} in {manifest_path}",
                         offending_input=str(path),
                     )
-                metadata[path.name] = self._normalize(entries[path.name], path)
+                raw[path.name] = dict(entries[path.name])
         elif pattern:
             regex = _pattern_regex(pattern)
             for path in files:
@@ -305,12 +328,10 @@ class BmfInputFormat:
                         f"{path.name} does not match filename_pattern {pattern!r}",
                         offending_input=str(path),
                     )
-                metadata[path.name] = self._normalize(match.groupdict(), path)
-        elif flag_meta:
-            metadata[files[0].name] = self._normalize(flag_meta, files[0])
+                raw[path.name] = match.groupdict()
         elif len(files) == 1:
             # A lone snapshot needs no ordering, so metadata is optional.
-            metadata[files[0].name] = {}
+            raw[files[0].name] = {}
         else:
             raise UlvError(
                 f"multiple BMF files but no ordering metadata; provide a "
@@ -318,9 +339,19 @@ class BmfInputFormat:
                 f"(first file: {files[0]})",
                 offending_input=str(files[0]),
             )
-        return metadata
 
-    def _normalize(self, entry: dict, path: Path) -> dict:
+        # Flags beat the file-level source per key (Decision 7); the
+        # multi-file guard above means they only ever apply to one file.
+        if flag_meta:
+            raw[files[0].name].update(flag_meta)
+
+        require_ordering = len(files) > 1
+        return {
+            name: self._normalize(entry, files[0].parent / name, require_ordering)
+            for name, entry in raw.items()
+        }
+
+    def _normalize(self, entry: dict, path: Path, require_ordering: bool) -> dict:
         unknown = set(entry) - set(_METADATA_FIELDS)
         if unknown:
             raise UlvError(
@@ -330,7 +361,9 @@ class BmfInputFormat:
         meta = dict(entry)
         if "date" in meta:
             meta["date"] = _parse_date(meta["date"], path)
-        if len(meta) > 0 and ("commit" not in meta or "date" not in meta):
+        # Commit and date only matter when several files must be ordered;
+        # a lone snapshot may carry any subset (or none) of the fields.
+        if require_ordering and ("commit" not in meta or "date" not in meta):
             raise UlvError(
                 f"metadata for {path.name} needs both 'commit' and 'date' "
                 f"(got: {sorted(meta)})",
