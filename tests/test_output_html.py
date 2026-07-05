@@ -169,8 +169,8 @@ class TestInfoJson:
 class TestServedFromSubdirectory:
     def test_all_referenced_assets_resolve(self, site):
         # The site must work under a non-root URL path (GitHub Pages
-        # project page), so serve the parent of a nested prefix and
-        # fetch everything relative to /<prefix>/<site>/.
+        # project page), so serve the site's parent directory and fetch
+        # everything relative to the /<site>/ subdirectory.
         serve_root = site.parent
         server = http.server.ThreadingHTTPServer(
             ("127.0.0.1", 0),
@@ -240,6 +240,212 @@ class TestAtomicOutput:
             HtmlOutputGenerator().generate(dataset, out_dir, {})
         assert not out_dir.exists()
         assert list(tmp_path.iterdir()) == []
+
+
+def _raw_results(machine: str, filename: str) -> dict:
+    return json.loads((FIXTURE / machine / filename).read_text())
+
+
+def _env_graph_file(site, benchmark: str, *needles: str) -> Path:
+    """The one non-summary graph file for `benchmark` whose directory path
+    contains every needle (e.g. 'machine-cheetah', 'numpy-1.8')."""
+    matches = [
+        path
+        for path in (site / "graphs").rglob(f"{benchmark}.json")
+        if "summary" not in path.parts
+        and all(any(needle in part for part in path.parts) for needle in needles)
+    ]
+    assert len(matches) == 1, (benchmark, needles, matches)
+    return matches[0]
+
+
+class TestGraphData:
+    """Unit tests for the asv/graph.py port (no step detection)."""
+
+    def _graph(self):
+        from ulv.outputs.html.graphs import Graph
+
+        return Graph("bench", {"machine": "m"})
+
+    def test_duplicate_revisions_are_arithmetic_averaged(self):
+        graph = self._graph()
+        graph.add_data_point(5, 1.0)
+        graph.add_data_point(5, 3.0)
+        assert graph.get_data() == [(5, 2.0, None)]
+
+    def test_na_values_ignored_in_average(self):
+        graph = self._graph()
+        graph.add_data_point(5, 1.0)
+        graph.add_data_point(5, None)
+        graph.add_data_point(5, float("nan"))
+        assert graph.get_data() == [(5, 1.0, None)]
+
+    def test_leading_and_trailing_all_na_revisions_trimmed(self):
+        graph = self._graph()
+        graph.add_data_point(1, None)
+        graph.add_data_point(2, 1.0)
+        graph.add_data_point(3, None)
+        graph.add_data_point(4, 2.0)
+        graph.add_data_point(5, None)
+        data = graph.get_data()
+        assert [point[0] for point in data] == [2, 3, 4]
+        assert [point[1] for point in data] == [1.0, None, 2.0]
+
+    def test_series_length_mismatch_raises(self):
+        graph = self._graph()
+        graph.add_data_point(1, [1.0, 2.0])
+        with pytest.raises(ValueError, match="[Mm]ismatch"):
+            graph.add_data_point(2, [1.0, 2.0, 3.0])
+
+    def test_save_drops_weights_and_never_emits_nan(self, tmp_path):
+        graph = self._graph()
+        graph.add_data_point(1, 1.0, weight=2.5)
+        graph.add_data_point(2, float("nan"))
+        graph.add_data_point(3, 3.0)
+        graph.save(tmp_path)
+        text = (tmp_path / (graph.path + ".json")).read_text()
+        assert "NaN" not in text
+        assert json.loads(text) == [[1, 1.0], [2, None], [3, 3.0]]
+
+
+class TestGraphFiles:
+    def test_scalar_graph_values_match_fixture(self, site, index):
+        graph_file = _env_graph_file(
+            site, "time_units.time_unit_parse", "machine-cheetah", "numpy-1.8"
+        )
+        data = json.loads(graph_file.read_text())
+        old = _raw_results("cheetah", "05d4f83d-py2.7-Cython-numpy1.8.json")
+        mid = _raw_results("cheetah", "fcf8c079-py2.7-Cython-numpy1.8.json")
+        new = _raw_results("cheetah", "05d283b9-py2.7-Cython-numpy1.8.json")
+        # The oldest commit's run failed (result null in the raw file), so
+        # revision 0 is an all-NA leading edge and gets trimmed.
+        assert old["results"]["time_units.time_unit_parse"][0] is None
+        expected = [
+            [1, mid["results"]["time_units.time_unit_parse"][0][0]],
+            [2, new["results"]["time_units.time_unit_parse"][0][0]],
+        ]
+        assert data == expected
+        for revision, commit in [(0, old), (1, mid), (2, new)]:
+            assert index["revision_to_hash"][str(revision)] == commit["commit_hash"]
+
+    def test_parameterized_graph_keeps_flat_product_order(self, site):
+        graph_file = _env_graph_file(
+            site, "params_examples.mem_param", "machine-cheetah", "numpy-1.8"
+        )
+        data = json.loads(graph_file.read_text())
+        mid = _raw_results("cheetah", "fcf8c079-py2.7-Cython-numpy1.8.json")
+        new = _raw_results("cheetah", "05d283b9-py2.7-Cython-numpy1.8.json")
+        assert data == [
+            [1, mid["results"]["params_examples.mem_param"][0]],
+            [2, new["results"]["params_examples.mem_param"][0]],
+        ]
+
+    def test_trailing_all_failed_revision_trimmed(self, site):
+        # track_value's newest commit collapsed to all-null in the fixture,
+        # so the series must end at the previous revision.
+        graph_file = _env_graph_file(
+            site,
+            "params_examples.ParamSuite.track_value",
+            "machine-cheetah",
+            "numpy-1.8",
+        )
+        data = json.loads(graph_file.read_text())
+        assert data == [[0, [1, 2, 3]], [1, [1, 4, None]]]
+
+    def test_each_machine_gets_its_own_graph(self, site):
+        _env_graph_file(
+            site, "time_units.time_unit_parse", "machine-cheetah", "numpy-1.8"
+        )
+        _env_graph_file(
+            site, "time_units.time_unit_parse", "machine-cheetah", "numpy-1.9"
+        )
+        _env_graph_file(site, "time_units.time_unit_parse", "machine-leopard")
+
+    def test_graph_param_list_entries_locate_existing_files(self, site, index):
+        from ulv.outputs.html.paths import graph_path
+
+        assert index["graph_param_list"]
+        for entry in index["graph_param_list"]:
+            directory = graph_path(entry, "x").rsplit("/", 1)[0]
+            assert (site / directory).is_dir(), entry
+
+    def test_missing_params_filled_with_null_on_axis_and_graphs(self, site, index):
+        # Only one environment declares env-ULV_TEST, so the axis gains a
+        # null entry and the other environments' graph params carry null.
+        assert index["params"]["env-ULV_TEST"] == ["1", None]
+        without = [
+            entry
+            for entry in index["graph_param_list"]
+            if entry["env-ULV_TEST"] is None
+        ]
+        assert len(without) == len(index["graph_param_list"]) - 1
+
+    def test_no_nan_in_any_emitted_graph_json(self, site):
+        for path in (site / "graphs").rglob("*.json"):
+            assert "NaN" not in path.read_text(), path
+
+
+class TestSummaryGraphs:
+    def test_summary_file_exists_per_benchmark(self, site, dataset):
+        for name in dataset.benchmarks:
+            assert (site / "graphs" / "summary" / f"{name}.json").is_file(), name
+
+    def test_single_environment_summary_equals_series(self, site):
+        # time_ci_small exists in exactly one environment, so the summary
+        # geometric mean over one series is the value itself. The newer
+        # revision is NaN-skipped; asv's edge trim (graph.py:201-206)
+        # keeps one trailing all-NA revision when everything after the
+        # first valid point is missing, and the port preserves that.
+        data = json.loads(
+            (site / "graphs" / "summary" / "time_ci_small.json").read_text()
+        )
+        assert data == [[1, 3.0], [2, None]]
+
+
+class TestSummaryList:
+    @pytest.fixture(scope="module")
+    def cheetah_rows(self, site, index):
+        from ulv.outputs.html.paths import graph_path
+
+        (entry,) = [
+            e
+            for e in index["graph_param_list"]
+            if e["machine"] == "cheetah" and e["numpy"] == "1.8"
+        ]
+        # summarylist.js fetches graph_to_path('summary', state); the file
+        # must sit exactly where the frontend recomputes that path.
+        path = graph_path(entry, "summary") + ".json"
+        return json.loads((site / path).read_text())
+
+    def test_scalar_row_uses_raw_series_tail(self, cheetah_rows):
+        (row,) = [r for r in cheetah_rows if r["name"] == "time_units.time_unit_parse"]
+        new = _raw_results("cheetah", "05d283b9-py2.7-Cython-numpy1.8.json")
+        assert row["idx"] is None
+        assert row["last_rev"] == 2
+        assert row["last_value"] == new["results"]["time_units.time_unit_parse"][0][0]
+
+    def test_parameterized_rows_have_flat_idx_and_pretty_names(self, cheetah_rows):
+        rows = [r for r in cheetah_rows if r["name"] == "params_examples.mem_param"]
+        assert [r["idx"] for r in rows] == [0, 1, 2, 3]
+        assert rows[0]["pretty_name"] == "params_examples.mem_param(10, 2)"
+        assert rows[3]["pretty_name"] == "params_examples.mem_param(20, 3)"
+        new = _raw_results("cheetah", "05d283b9-py2.7-Cython-numpy1.8.json")
+        assert [r["last_value"] for r in rows] == (
+            new["results"]["params_examples.mem_param"][0]
+        )
+
+    def test_change_columns_are_null_without_step_detection(self, cheetah_rows):
+        for row in cheetah_rows:
+            assert row["prev_value"] is None
+            assert row["change_rev"] is None
+
+    def test_last_err_is_ci_width_from_tail_weight(self, cheetah_rows):
+        # time_ci_small's tail is the mid revision (newest is NaN-trimmed);
+        # its stats give ci_99 = [3.1, 3.9], so the error bar is 0.8.
+        (row,) = [r for r in cheetah_rows if r["name"] == "time_ci_small"]
+        assert row["last_rev"] == 1
+        assert row["last_value"] == 3.0
+        assert row["last_err"] == pytest.approx(0.8)
 
 
 class TestPackaging:

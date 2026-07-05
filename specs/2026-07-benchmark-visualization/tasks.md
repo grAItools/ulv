@@ -56,19 +56,18 @@ green.
 - [x] Tests: static-only output; no `https?://` asset refs; served
       from subdirectory, all assets 200; failure → no output dir
 - [x] `make verify` green; manual browser smoke of skeleton site
-      (pending user browser pass — serve instructions in hand-off)
 
 ## Phase 5 — Graph data: series, params, machines, summaries
 
-- [ ] Port graph data handling from `asv/graph.py` (no detect_steps);
+- [x] Port graph data handling from `asv/graph.py` (no detect_steps);
       write `graphs/…/<benchmark>.json`
-- [ ] Per (benchmark × params × branch) graphs; null-fill param axes;
+- [x] Per (benchmark × params × branch) graphs; null-fill param axes;
       `graph_param_list` + `params` in index.json
-- [ ] Summary graphs (grid view) + summarylist JSON (last value from
+- [x] Summary graphs (grid view) + summarylist JSON (last value from
       raw tail, change fields null)
-- [ ] Tests: graph values == fixture values; parameterized series
+- [x] Tests: graph values == fixture values; parameterized series
       count; distinct machine axes; summary files per benchmark
-- [ ] `make verify` green; manual browse: graphs + machine/param
+- [x] `make verify` green; manual browse: graphs + machine/param
       filtering work
 
 ## Phase 6 — Config, flag overrides, `ulv serve`

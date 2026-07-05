@@ -5,12 +5,16 @@ the vendored frontend boots from `info.json`, then `index.json`, then
 fetches graph JSON files by recomputing paths client-side. Output is
 atomic: the site is built in a temp directory next to the target and
 swapped in only on success, so a failed build never leaves a partially
-broken site.
+broken site. Directory renames bound that guarantee: a hard kill
+between the two renames can leave the previous site parked under the
+hidden `.<name>.old-<pid>` name rather than at the target path; both
+hidden names are pre-cleaned on the next run.
 """
 
 from __future__ import annotations
 
 import importlib.resources
+import itertools
 import json
 import os
 import shutil
@@ -18,7 +22,14 @@ import time
 from pathlib import Path
 
 from ulv import __version__
-from ulv.model import Dataset
+from ulv.model import Benchmark, Dataset
+from ulv.outputs.html.graphs import (
+    GraphSet,
+    get_weight,
+    is_na,
+    make_summary_graph,
+)
+from ulv.outputs.html.paths import graph_path
 
 _PAGES = [
     # [name, button_label, description] per asv's OutputPublisher
@@ -35,6 +46,15 @@ def _js_timestamp(moment) -> int:
     return int(moment.timestamp() * 1000)
 
 
+def _benchmark_param_iter(benchmark: Benchmark):
+    """(flat index, param-value tuple) per combination, or (None, ()) for
+    a non-parameterized benchmark (summarylist.py:11-27)."""
+    if not benchmark.params:
+        yield None, ()
+    else:
+        yield from enumerate(itertools.product(*benchmark.params))
+
+
 class HtmlOutputGenerator:
     """Built-in `html` output generator."""
 
@@ -47,6 +67,7 @@ class HtmlOutputGenerator:
         build_dir = out_dir.parent / f".{out_dir.name}.build-{os.getpid()}"
         old_dir = out_dir.parent / f".{out_dir.name}.old-{os.getpid()}"
         shutil.rmtree(build_dir, ignore_errors=True)
+        shutil.rmtree(old_dir, ignore_errors=True)
 
         try:
             self._copy_static(build_dir)
@@ -75,7 +96,13 @@ class HtmlOutputGenerator:
             shutil.copytree(static_path, build_dir)
 
     def _write_site_json(self, build_dir: Path, dataset: Dataset, options) -> None:
-        index = self._index_data(dataset, options)
+        graph_set, axis_values = self._build_graphs(dataset)
+        graph_set.save(build_dir)
+        for name in graph_set.benchmark_names():
+            make_summary_graph(graph_set.get_graph_group(name)).save(build_dir)
+        self._write_summarylist(build_dir, dataset, graph_set)
+
+        index = self._index_data(dataset, options, graph_set, axis_values)
         (build_dir / "index.json").write_text(json.dumps(index, sort_keys=True))
         info = {
             "asv-version": f"ulv {__version__}",
@@ -83,7 +110,100 @@ class HtmlOutputGenerator:
         }
         (build_dir / "info.json").write_text(json.dumps(info))
 
-    def _index_data(self, dataset: Dataset, options) -> dict:
+    def _build_graphs(self, dataset: Dataset) -> tuple[GraphSet, dict]:
+        """One graph per (benchmark × environment params × branch), as
+        publish.py:203-236 builds them: env factors plus the revision's
+        branch, missing params filled with None and None added to that
+        axis' value set."""
+        env_by_id = {env.id: env for env in dataset.environments}
+        revision_index = {rev.id: i for i, rev in enumerate(dataset.revisions)}
+        # publish coerces None param values to '' (publish.py:224-226);
+        # an unknown branch gets the same spelling.
+        branch_of = {rev.id: rev.branch or "" for rev in dataset.revisions}
+
+        axis_values: dict[str, set] = {}
+        for env in dataset.environments:
+            for factor, value in env.factors.items():
+                axis_values.setdefault(factor, set()).add(value)
+        axis_values.setdefault("branch", set()).update(branch_of.values())
+
+        graph_set = GraphSet()
+        for series in dataset.series:
+            environment = env_by_id[series.environment]
+            benchmark = dataset.benchmarks[series.benchmark]
+            parameterized = bool(benchmark.params)
+            for revision_id, point in series.points.items():
+                if parameterized:
+                    value = list(point.value)
+                    if isinstance(point.stats, (list, tuple)):
+                        weight = [get_weight(s) for s in point.stats]
+                    else:
+                        weight = [None] * len(value)
+                else:
+                    value = point.value
+                    weight = get_weight(point.stats)
+
+                cur_params = dict(environment.factors)
+                cur_params["branch"] = branch_of[revision_id]
+                for key in axis_values:
+                    if key not in cur_params:
+                        cur_params[key] = None
+                        axis_values[key].add(None)
+
+                graph = graph_set.get_graph(benchmark.name, cur_params)
+                graph.add_data_point(revision_index[revision_id], value, weight)
+        return graph_set, axis_values
+
+    def _write_summarylist(
+        self, build_dir: Path, dataset: Dataset, graph_set: GraphSet
+    ) -> None:
+        """Per-environment summary.json rows (summarylist.py:36-114).
+        Step detection is skipped (spec Decision 6): last_value comes from
+        the raw series tail, last_err is the tail point's ci_99 width
+        recovered from its weight (weight = 2/width), and the change
+        columns stay null."""
+        results: dict[str, list] = {}
+        for benchmark_name, benchmark in sorted(dataset.benchmarks.items()):
+            graphs = graph_set.get_graph_group(benchmark_name)
+            data_by_path = {graph.path: graph.get_data() for graph in graphs}
+            for idx, benchmark_param in _benchmark_param_iter(benchmark):
+                pretty_name = benchmark.pretty_name or benchmark_name
+                if idx is not None:
+                    pretty_name = f"{pretty_name}({', '.join(benchmark_param)})"
+                for graph in graphs:
+                    last_rev = None
+                    last_value = None
+                    last_err = None
+                    for revision, value, weight in data_by_path[graph.path]:
+                        if idx is not None:
+                            weight = weight[idx] if weight else None
+                            value = value[idx]
+                        if not is_na(value):
+                            last_rev = revision
+                            last_value = value
+                            last_err = 2 / weight if not is_na(weight) else None
+                    row = {
+                        "name": benchmark_name,
+                        "idx": idx,
+                        "pretty_name": pretty_name,
+                        "last_rev": last_rev,
+                        "last_value": last_value,
+                        "last_err": last_err,
+                        "prev_value": None,
+                        "change_rev": None,
+                    }
+                    path = graph_path(graph.params, "summary") + ".json"
+                    results.setdefault(path, []).append(row)
+
+        for path, rows in results.items():
+            target = build_dir / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            rows.sort(key=lambda row: (row["name"], row["idx"] or 0))
+            target.write_text(json.dumps(rows, allow_nan=False))
+
+    def _index_data(
+        self, dataset: Dataset, options, graph_set: GraphSet, axis_values: dict
+    ) -> dict:
         revision_to_hash = {}
         revision_to_date = {}
         for i, revision in enumerate(dataset.revisions):
@@ -91,26 +211,15 @@ class HtmlOutputGenerator:
             if revision.date is not None:
                 revision_to_date[i] = _js_timestamp(revision.date)
 
-        # Without repository info every revision carries branch None;
-        # the axis still exists because the frontend and the graph path
-        # scheme treat 'branch' as a regular (single-select) parameter.
-        branches = sorted(
-            {revision.branch for revision in dataset.revisions},
-            key=lambda b: (b is not None, b),
-        ) or [None]
-        params = {
-            factor: list(values)
-            for factor, values in dataset.environment_axes().items()
-        }
-        params["branch"] = branches
+        params = {}
+        for key, values in axis_values.items():
+            # asv's axis ordering: None sorts as the string '[none]'
+            # (publish.py:277-280).
+            params[key] = sorted(
+                values, key=lambda x: "[none]" if x is None else str(x)
+            )
 
-        graph_param_list = []
-        for environment in dataset.environments:
-            for branch in branches:
-                entry = dict(environment.factors)
-                entry["branch"] = branch
-                if entry not in graph_param_list:
-                    graph_param_list.append(entry)
+        graph_param_list = graph_set.param_list()
 
         benchmarks = {}
         for name, benchmark in dataset.benchmarks.items():
