@@ -103,7 +103,9 @@ class HtmlOutputGenerator:
         self._write_summarylist(build_dir, dataset, graph_set)
 
         index = self._index_data(dataset, options, graph_set, axis_values)
-        (build_dir / "index.json").write_text(json.dumps(index, sort_keys=True))
+        (build_dir / "index.json").write_text(
+            json.dumps(index, sort_keys=True, separators=(",", ":"))
+        )
         info = {
             "asv-version": f"ulv {__version__}",
             "timestamp": int(time.time() * 1000),
@@ -199,7 +201,7 @@ class HtmlOutputGenerator:
             target = build_dir / path
             target.parent.mkdir(parents=True, exist_ok=True)
             rows.sort(key=lambda row: (row["name"], row["idx"] or 0))
-            target.write_text(json.dumps(rows, allow_nan=False))
+            target.write_text(json.dumps(rows, separators=(",", ":"), allow_nan=False))
 
     def _index_data(
         self, dataset: Dataset, options, graph_set: GraphSet, axis_values: dict

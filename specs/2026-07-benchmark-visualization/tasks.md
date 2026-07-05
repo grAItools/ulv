@@ -72,14 +72,14 @@ green.
 
 ## Phase 6 — Config, flag overrides, `ulv serve`
 
-- [ ] `src/ulv/config.py`: TOML/JSON load, defaults < file < flags,
+- [x] `src/ulv/config.py`: TOML/JSON load, defaults < file < flags,
       unknown keys error
-- [ ] `build` consumes merged settings; flag per config key
-- [ ] `serve` subcommand (http.server on host/port)
-- [ ] Tests: flag-beats-file (TOML and JSON); malformed config exits
+- [x] `build` consumes merged settings; flag per config key
+- [x] `serve` subcommand (http.server on host/port)
+- [x] Tests: flag-beats-file (TOML and JSON); malformed config exits
       non-zero naming file; serve smoke test
-- [ ] Author ADR: CLI framework choice (argparse + config precedence)
-- [ ] `make verify` green
+- [x] Author ADR: CLI framework choice (argparse + config precedence)
+- [x] `make verify` green
 
 ## Phase 7 — Optional git enrichment (ASV input)
 

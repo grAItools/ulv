@@ -141,7 +141,7 @@ class Graph:
         filename = Path(html_dir) / (self.path + ".json")
         filename.parent.mkdir(parents=True, exist_ok=True)
         val = [v[:2] for v in self.get_data()]
-        filename.write_text(json.dumps(val, allow_nan=False))
+        filename.write_text(json.dumps(val, separators=(",", ":"), allow_nan=False))
 
 
 class GraphSet:
