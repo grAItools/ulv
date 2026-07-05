@@ -13,6 +13,7 @@ from __future__ import annotations
 import datetime as dt
 import itertools
 import json
+import sys
 from pathlib import Path
 
 from ulv.errors import UlvError
@@ -219,17 +220,26 @@ def _git_revisions(
 ) -> tuple[Revision, ...]:
     """Repository-enriched revisions: rev-list topological order instead
     of result-date order, committer dates, tags, and attribution to every
-    configured branch containing the commit (publish.py:169-236)."""
+    configured branch containing the commit (publish.py:169-236).
+
+    Results whose commit is missing from history (rebased away) or on no
+    configured branch are warned about and skipped, as asv does
+    (publish.py:178-201) — never fatal, never graphed under a phantom
+    branch."""
     repo = GitRepo(repo_path)
     branch_names = configured_branches or [repo.default_branch()]
     membership = {name: set(repo.branch_commits(name)) for name in branch_names}
 
     order = {commit: i for i, commit in enumerate(repo.rev_order())}
+    known = {}
     for commit in revision_dates:
-        if commit not in order:
-            raise UlvError(
-                f"result commit {commit} not found in repository {repo_path}",
-                offending_input=commit,
+        if commit in order:
+            known[commit] = revision_dates[commit]
+        else:
+            print(
+                f"ulv: warning: commit {commit} not found in repository "
+                f"{repo_path}; skipping its results",
+                file=sys.stderr,
             )
 
     tags_by_commit: dict[str, list[str]] = {}
@@ -237,8 +247,15 @@ def _git_revisions(
         tags_by_commit.setdefault(commit, []).append(tag)
 
     revisions = []
-    for commit in sorted(revision_dates, key=order.__getitem__):
+    for commit in sorted(known, key=order.__getitem__):
         branches = tuple(name for name in branch_names if commit in membership[name])
+        if not branches:
+            print(
+                f"ulv: warning: commit {commit} is not on any configured "
+                f"branch ({', '.join(branch_names)}); skipping its results",
+                file=sys.stderr,
+            )
+            continue
         revisions.append(
             Revision(
                 id=commit,
@@ -313,6 +330,15 @@ class AsvInputFormat:
             )
         if repo_path:
             revisions = _git_revisions(repo_path, configured_branches, revision_dates)
+            # Skipped (unattributable) revisions take their points with
+            # them, so the dataset stays referentially consistent.
+            kept = {revision.id for revision in revisions}
+            if len(kept) != len(revision_dates):
+                points = {
+                    key: filtered
+                    for key, value in points.items()
+                    if (filtered := {c: p for c, p in value.items() if c in kept})
+                }
         else:
             revisions = tuple(
                 Revision(

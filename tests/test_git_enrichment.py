@@ -179,10 +179,12 @@ class TestWithRepo:
         assert by_id[repo["B"]].tags == ()
 
     def test_default_branch_used_when_none_configured(self, results_dir, repo):
+        # Only main (the checked-out branch) is configured, so C — which
+        # sits on feat alone — is unattributable and skipped entirely.
         dataset = _load(results_dir, repo=str(repo["path"]))
         by_id = {r.id: r for r in dataset.revisions}
         assert by_id[repo["B"]].branches == ("main",)
-        assert by_id[repo["C"]].branches == ()
+        assert repo["C"] not in by_id
 
 
 @pytest.fixture(scope="module")
@@ -241,34 +243,118 @@ class TestErrors:
         with pytest.raises(UlvError, match="branches"):
             _load(results_dir, branches=["main"])
 
-    def test_result_commit_missing_from_repo_named(self, repo, tmp_path):
-        root = tmp_path / "results"
-        root.mkdir()
-        (root / "benchmarks.json").write_text(
-            json.dumps(
-                {
-                    "time_x": {
-                        "name": "time_x",
-                        "param_names": [],
-                        "params": [],
-                        "type": "time",
-                        "unit": "seconds",
-                    },
-                    "version": 2,
-                }
-            )
+    def test_plain_subdirectory_of_a_repo_rejected(self, repo):
+        # A subdirectory inside a repository must not silently adopt the
+        # enclosing repository as the configured one.
+        subdir = repo["path"] / "sub"
+        subdir.mkdir(exist_ok=True)
+        with pytest.raises(UlvError, match="sub"):
+            _load_repo_probe(subdir)
+
+
+def _load_repo_probe(path):
+    from ulv.gitrepo import GitRepo
+
+    return GitRepo(path)
+
+
+def _make_results(root, entries):
+    """A one-machine results tree with one result file per (commit, date,
+    value) entry."""
+    root.mkdir()
+    (root / "benchmarks.json").write_text(
+        json.dumps(
+            {
+                "time_x": {
+                    "name": "time_x",
+                    "param_names": [],
+                    "params": [],
+                    "type": "time",
+                    "unit": "seconds",
+                },
+                "version": 2,
+            }
         )
-        box = root / "box"
-        box.mkdir()
-        (box / "machine.json").write_text(
-            json.dumps({"machine": "box", "os": "Linux", "version": 1})
+    )
+    box = root / "box"
+    box.mkdir()
+    (box / "machine.json").write_text(
+        json.dumps({"machine": "box", "os": "Linux", "version": 1})
+    )
+    for commit, date, value in entries:
+        (box / f"{commit[:8]}-py3.json").write_text(
+            json.dumps(_result_file(commit, date, value))
         )
+    return root
+
+
+class TestUnattributableCommits:
+    """ASV parity: results that cannot be placed in the configured
+    history are warned about and skipped, never fatal and never graphed
+    under a phantom branch (publish.py:178-201)."""
+
+    def test_rebased_away_commit_skipped_with_diagnostic(self, repo, tmp_path, capsys):
         stranger = "f" * 40
-        (box / f"{stranger[:8]}-py3.json").write_text(
-            json.dumps(_result_file(stranger, 1767000000000, 1.0))
+        results = _make_results(
+            tmp_path / "results",
+            [
+                (repo["A"], RESULT_DATE_A, 1.0),
+                (stranger, 1767000000000, 9.0),
+            ],
         )
-        with pytest.raises(UlvError, match=stranger[:8]):
-            _load(root, repo=str(repo["path"]))
+        out_dir = tmp_path / "site"
+        rc = main(
+            [
+                "build",
+                "-i",
+                "asv",
+                "--input-dir",
+                str(results),
+                "-o",
+                str(out_dir),
+                "--repo",
+                str(repo["path"]),
+                "--branches",
+                "main",
+            ]
+        )
+        assert rc == 0
+        index = json.loads((out_dir / "index.json").read_text())
+        assert stranger not in index["revision_to_hash"].values()
+        assert list(index["revision_to_hash"].values()) == [repo["A"]]
+        assert stranger in capsys.readouterr().err
+
+    def test_commit_on_unconfigured_branch_not_graphed(self, repo, tmp_path, capsys):
+        results = _make_results(
+            tmp_path / "results",
+            [
+                (repo["A"], RESULT_DATE_A, 1.0),
+                (repo["B"], RESULT_DATE_B, 2.0),
+                (repo["C"], RESULT_DATE_C, 3.0),
+            ],
+        )
+        out_dir = tmp_path / "site"
+        rc = main(
+            [
+                "build",
+                "-i",
+                "asv",
+                "--input-dir",
+                str(results),
+                "-o",
+                str(out_dir),
+                "--repo",
+                str(repo["path"]),
+                "--branches",
+                "main",
+            ]
+        )
+        assert rc == 0
+        index = json.loads((out_dir / "index.json").read_text())
+        assert index["params"]["branch"] == ["main"]
+        assert repo["C"] not in index["revision_to_hash"].values()
+        assert list(out_dir.glob("graphs/branch-feat/**/*.json")) == []
+        assert repo["C"] in capsys.readouterr().err
 
 
 class TestCli:

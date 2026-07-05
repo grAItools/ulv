@@ -3,9 +3,11 @@
 Shells out to `git` the way asv does (asv/plugins/git.py) — no
 gitpython. Enrichment only runs when a repository is explicitly
 configured, and a configured-but-unusable repository is an error, never
-a silent downgrade. Semantics mirror asv: topological revision order is
-`rev-list --all --date-order --reverse`, branch membership follows
-first-parent history, and annotated tags resolve to their commit.
+a silent downgrade. Three behaviors mirror asv exactly: topological
+revision order is `rev-list --all --date-order --reverse`, branch
+membership follows first-parent history, and annotated tags resolve to
+their commit. Commit dates deliberately diverge: asv reads the author
+date (git.py:123-135), this wrapper the committer date.
 """
 
 from __future__ import annotations
@@ -35,6 +37,10 @@ class GitRepo:
             GIT_TERMINAL_PROMPT="0",
             GIT_CONFIG_GLOBAL=os.devnull,
             GIT_CONFIG_SYSTEM=os.devnull,
+            # Discovery must not walk above the configured path: a plain
+            # subdirectory inside some repository is a misconfiguration,
+            # not an alias for the enclosing repository.
+            GIT_CEILING_DIRECTORIES=str(self.path.resolve().parent),
         )
         try:
             completed = subprocess.run(
@@ -65,7 +71,10 @@ class GitRepo:
         return self._git("rev-list", "--all", "--date-order", "--reverse").split()
 
     def commit_date_ms(self, commit: str) -> int:
-        """Committer date as a JS millisecond timestamp."""
+        """Committer date (%ct) as a JS millisecond timestamp — a
+        deliberate divergence from asv, which uses the author date
+        (%at, git.py:123-135); the two differ only for rebased or
+        cherry-picked commits."""
         return int(self._git("log", "-1", "--format=%ct", commit).strip()) * 1000
 
     def tags(self) -> dict[str, str]:
