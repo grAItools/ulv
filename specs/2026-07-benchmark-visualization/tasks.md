@@ -94,15 +94,15 @@ green.
 
 ## Phase 8 — BMF input + snapshot view
 
-- [ ] `src/ulv/inputs/bmf.py`: parse BMF; (bench, measure) → internal
+- [x] `src/ulv/inputs/bmf.py`: parse BMF; (bench, measure) → internal
       benchmark; bounds preserved; register `bmf`
-- [ ] Sidecar metadata: manifest file, `filename_pattern`, CLI flags;
+- [x] Sidecar metadata: manifest file, `filename_pattern`, CLI flags;
       missing metadata → error naming file; order by metadata only
-- [ ] Snapshot path: single revision → `snapshot.html` table/bar page
+- [x] Snapshot path: single revision → `snapshot.html` table/bar page
       with values + bounds as site entry point
-- [ ] Tests: shuffled file order follows metadata; missing-metadata
+- [x] Tests: shuffled file order follows metadata; missing-metadata
       failure; snapshot page content; absent bounds not rendered as 0
-- [ ] `make verify` green
+- [x] `make verify` green
 
 ## Phase 9 — Testbed decomposition
 

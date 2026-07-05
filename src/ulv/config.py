@@ -35,6 +35,15 @@ class Settings:
     # file and the flag share one spelling.
     repo: str | None = None
     branches: str = ""
+    # BMF sidecar metadata (spec Decision 3): a manifest file or a
+    # filename pattern for many files, or per-file values for a single
+    # file. Ordering never comes from file order or timestamps.
+    manifest: str | None = None
+    filename_pattern: str | None = None
+    commit: str | None = None
+    date: str | None = None
+    branch: str | None = None
+    testbed: str | None = None
 
     def branch_list(self) -> list[str]:
         return [name.strip() for name in self.branches.split(",") if name.strip()]

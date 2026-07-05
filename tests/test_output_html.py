@@ -448,6 +448,99 @@ class TestSummaryList:
         assert row["last_err"] == pytest.approx(0.8)
 
 
+BMF_SNAPSHOT = {
+    "adapter::json": {
+        "latency": {"value": 3.5, "lower_value": 3.1, "upper_value": 4.0},
+        "throughput": {"value": 100.0},
+    },
+}
+
+
+@pytest.fixture(scope="module")
+def snapshot_site(tmp_path_factory):
+    from ulv.inputs.bmf import BmfInputFormat
+
+    root = tmp_path_factory.mktemp("bmf")
+    source = root / "snap.json"
+    source.write_text(json.dumps(BMF_SNAPSHOT))
+    dataset = BmfInputFormat().load(source, {"project": "snapdemo"})
+    site = root / "html"
+    HtmlOutputGenerator().generate(dataset, site, {})
+    return site
+
+
+class TestSnapshotPage:
+    def test_snapshot_html_is_the_entry_point(self, snapshot_site):
+        assert (snapshot_site / "snapshot.html").is_file()
+        index = (snapshot_site / "index.html").read_text()
+        assert "snapshot.html" in index
+        assert 'http-equiv="refresh"' in index
+
+    def test_rows_show_values_and_bounds(self, snapshot_site):
+        page = (snapshot_site / "snapshot.html").read_text()
+        assert "adapter::json" in page
+        assert "latency" in page
+        assert "3.5" in page
+        assert "3.1" in page
+        assert "4.0" in page
+
+    def test_absent_bounds_render_empty_not_zero(self, snapshot_site):
+        page = (snapshot_site / "snapshot.html").read_text()
+        throughput_row = next(
+            line for line in page.splitlines() if "throughput" in line
+        )
+        assert "100.0" in throughput_row
+        # lower/upper cells for throughput are empty, never a zero
+        assert throughput_row.count("<td></td>") == 2
+        assert ">0<" not in throughput_row
+
+    def test_snapshot_uses_local_bootstrap_only(self, snapshot_site):
+        page = (snapshot_site / "snapshot.html").read_text()
+        assert "vendor/css/bootstrap.min.css" in page
+        for ref in _resource_refs(page):
+            assert not re.match(r"^(https?:)?//", ref), ref
+
+    def test_no_graph_data_emitted_for_snapshot(self, snapshot_site):
+        assert not (snapshot_site / "index.json").exists()
+        assert list((snapshot_site / "graphs").rglob("*.json")) == []
+
+
+class TestMultiRevisionBmfSite:
+    def test_graph_values_follow_metadata_order(self, tmp_path):
+        from ulv.inputs.bmf import BmfInputFormat
+
+        root = tmp_path / "bmf"
+        root.mkdir()
+        files = {
+            "x.json": {"bench": {"latency": {"value": 2.0}}},
+            "y.json": {"bench": {"latency": {"value": 1.0}}},
+        }
+        for name, data in files.items():
+            (root / name).write_text(json.dumps(data))
+        (root / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "x.json": {"commit": "x" * 8, "date": "2026-02-01T00:00:00Z"},
+                    "y.json": {"commit": "y" * 8, "date": "2026-01-01T00:00:00Z"},
+                }
+            )
+        )
+        dataset = BmfInputFormat().load(
+            root, {"project": "demo", "manifest": str(root / "manifest.json")}
+        )
+        site = tmp_path / "site"
+        HtmlOutputGenerator().generate(dataset, site, {})
+        assert (site / "index.json").is_file()
+        assert not (site / "snapshot.html").exists()
+        (graph_file,) = [
+            p
+            for p in (site / "graphs").rglob("bench (latency).json")
+            if "summary" not in p.parts
+        ]
+        # y (older by metadata) is revision 0 despite its later name.
+        assert json.loads(graph_file.read_text()) == [[0, 1.0], [1, 2.0]]
+
+
 class TestPackaging:
     def test_registered_as_builtin_output_generator(self):
         assert isinstance(plugins.output_generators.get("html"), HtmlOutputGenerator)

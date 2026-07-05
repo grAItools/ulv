@@ -77,6 +77,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="comma-separated branches to attribute results to "
         "(requires --repo; default: the repository's checked-out branch)",
     )
+    build.add_argument(
+        "--manifest",
+        help="BMF sidecar manifest (JSON or TOML) mapping each input "
+        "filename to its commit/date/branch/testbed metadata",
+    )
+    build.add_argument(
+        "--filename-pattern",
+        help="BMF filename template with {commit}/{date}/{branch}/"
+        "{testbed} fields, e.g. '{commit}_{date}.json'",
+    )
+    build.add_argument(
+        "--commit",
+        help="commit hash for a single BMF input file",
+    )
+    build.add_argument(
+        "--date",
+        help="ISO 8601 date for a single BMF input file",
+    )
+    build.add_argument(
+        "--branch",
+        help="branch name for a single BMF input file",
+    )
+    build.add_argument(
+        "--testbed",
+        help="testbed name for a single BMF input file",
+    )
 
     serve = subparsers.add_parser(
         "serve",
@@ -117,6 +143,12 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "show_commit_url": args.show_commit_url,
             "repo": args.repo,
             "branches": args.branches,
+            "manifest": args.manifest,
+            "filename_pattern": args.filename_pattern,
+            "commit": args.commit,
+            "date": args.date,
+            "branch": args.branch,
+            "testbed": args.testbed,
         },
     )
     for key in ("input_format", "input_dir", "output_dir"):
@@ -134,6 +166,12 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "project": settings.project,
             "repo": settings.repo,
             "branches": settings.branch_list(),
+            "manifest": settings.manifest,
+            "filename_pattern": settings.filename_pattern,
+            "commit": settings.commit,
+            "date": settings.date,
+            "branch": settings.branch,
+            "testbed": settings.testbed,
         },
     )
     generator = plugins.output_generators.get("html")

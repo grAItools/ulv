@@ -299,6 +299,7 @@ class TestUnattributableCommits:
             tmp_path / "results",
             [
                 (repo["A"], RESULT_DATE_A, 1.0),
+                (repo["B"], RESULT_DATE_B, 2.0),
                 (stranger, 1767000000000, 9.0),
             ],
         )
@@ -321,7 +322,7 @@ class TestUnattributableCommits:
         assert rc == 0
         index = json.loads((out_dir / "index.json").read_text())
         assert stranger not in index["revision_to_hash"].values()
-        assert list(index["revision_to_hash"].values()) == [repo["A"]]
+        assert list(index["revision_to_hash"].values()) == [repo["A"], repo["B"]]
         assert stranger in capsys.readouterr().err
 
     def test_commit_on_unconfigured_branch_not_graphed(self, repo, tmp_path, capsys):

@@ -13,6 +13,7 @@ hidden names are pre-cleaned on the next run.
 
 from __future__ import annotations
 
+import html
 import importlib.resources
 import itertools
 import json
@@ -96,6 +97,13 @@ class HtmlOutputGenerator:
             shutil.copytree(static_path, build_dir)
 
     def _write_site_json(self, build_dir: Path, dataset: Dataset, options) -> None:
+        if not dataset.has_time_axis:
+            # A single revision has no history to graph: the site becomes
+            # a static table of values and bounds, and index.html turns
+            # into a redirect so the entry point is index.html either way.
+            self._write_snapshot(build_dir, dataset)
+            return
+
         graph_set, axis_values = self._build_graphs(dataset)
         graph_set.save(build_dir)
         for name in graph_set.benchmark_names():
@@ -111,6 +119,79 @@ class HtmlOutputGenerator:
             "timestamp": int(time.time() * 1000),
         }
         (build_dir / "info.json").write_text(json.dumps(info))
+
+    def _write_snapshot(self, build_dir: Path, dataset: Dataset) -> None:
+        """Non-time-series view for a lone snapshot (spec Decision 3):
+        one table row per benchmark × measure (× testbed), values and
+        bounds as-is, absent bounds as empty cells — never zero."""
+        environments = {env.id: env for env in dataset.environments}
+        show_testbed = any(env.factors for env in dataset.environments)
+
+        def cell(value) -> str:
+            return "" if value is None else html.escape(str(value))
+
+        rows = []
+        for name in sorted(dataset.benchmarks):
+            benchmark = dataset.benchmarks[name]
+            bench_label = benchmark.extra.get("bmf_benchmark", benchmark.name)
+            measure_label = benchmark.extra.get("bmf_measure", benchmark.unit or "")
+            for series in dataset.series_for(name):
+                point = next(iter(series.points.values()), None)
+                if point is None:
+                    continue
+                cells = [cell(bench_label), cell(measure_label)]
+                if show_testbed:
+                    factors = environments[series.environment].factors
+                    cells.append(cell(factors.get("testbed", "")))
+                cells += [cell(point.value), cell(point.lower), cell(point.upper)]
+                rows.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
+
+        headers = ["Benchmark", "Measure"]
+        if show_testbed:
+            headers.append("Testbed")
+        headers += ["Value", "Lower bound", "Upper bound"]
+        head = "".join(f"<th>{h}</th>" for h in headers)
+
+        revision = dataset.revisions[0] if dataset.revisions else None
+        subtitle = ""
+        if revision is not None and revision.commit_hash:
+            when = revision.date.isoformat() if revision.date else ""
+            subtitle = (
+                f'<p class="text-muted">commit '
+                f"{html.escape(revision.commit_hash)} {html.escape(when)}</p>"
+            )
+
+        title = html.escape(dataset.project or "benchmarks")
+        page = f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{title}</title>
+<link rel="stylesheet" href="vendor/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+<h1>{title}</h1>
+{subtitle}
+<table class="table table-striped table-hover">
+<thead><tr>{head}</tr></thead>
+<tbody>
+{chr(10).join(rows)}
+</tbody>
+</table>
+</div>
+</body>
+</html>
+"""
+        (build_dir / "snapshot.html").write_text(page)
+        redirect = (
+            '<!doctype html>\n<html>\n<head>\n<meta charset="utf-8">\n'
+            '<meta http-equiv="refresh" content="0; url=snapshot.html">\n'
+            "</head>\n<body>\n"
+            '<a href="snapshot.html">Benchmark snapshot</a>\n'
+            "</body>\n</html>\n"
+        )
+        (build_dir / "index.html").write_text(redirect)
 
     def _build_graphs(self, dataset: Dataset) -> tuple[GraphSet, dict]:
         """One graph per (benchmark × environment params × branch), as
