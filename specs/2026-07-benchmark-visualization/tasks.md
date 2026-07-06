@@ -106,15 +106,15 @@ green.
 
 ## Phase 9 — Testbed decomposition
 
-- [ ] Config schema: `[testbeds] factors` + `[testbeds.map.<name>]`;
+- [x] Config schema: `[testbeds] factors` + `[testbeds.map.<name>]`;
       validate coverage of declared factors
-- [ ] Pipeline: mapping → per-factor axes; no mapping → opaque
+- [x] Pipeline: mapping → per-factor axes; no mapping → opaque
       `testbed` axis; `--allow-unmapped` → "unknown" values + warning;
       default → `UlvError` naming uncovered testbeds, no site
-- [ ] Tests: factor filtering matches only mapped testbeds; opaque
+- [x] Tests: factor filtering matches only mapped testbeds; opaque
       axis; omitted testbed fails naming it; `--allow-unmapped`
       builds with "unknown" + diagnostic
-- [ ] `make verify` green
+- [x] `make verify` green
 
 ## Phase 10 — Bencher REST API fetcher
 

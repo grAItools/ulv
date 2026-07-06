@@ -103,6 +103,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--testbed",
         help="testbed name for a single BMF input file",
     )
+    build.add_argument(
+        "--allow-unmapped",
+        action="store_true",
+        default=None,
+        help="include testbeds missing from the [testbeds] mapping with "
+        "'unknown' factor values instead of failing",
+    )
 
     serve = subparsers.add_parser(
         "serve",
@@ -149,6 +156,7 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "date": args.date,
             "branch": args.branch,
             "testbed": args.testbed,
+            "allow_unmapped": args.allow_unmapped,
         },
     )
     for key in ("input_format", "input_dir", "output_dir"):
@@ -172,6 +180,8 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "date": settings.date,
             "branch": settings.branch,
             "testbed": settings.testbed,
+            "testbeds": settings.testbeds,
+            "allow_unmapped": settings.allow_unmapped,
         },
     )
     generator = plugins.output_generators.get("html")

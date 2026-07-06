@@ -15,6 +15,7 @@ from dataclasses import dataclass, fields, replace
 from pathlib import Path
 
 from ulv.errors import UlvError
+from ulv.testbeds import TestbedConfig, parse_testbeds
 
 DEFAULT_CONFIG_NAME = "ulv.toml"
 
@@ -44,6 +45,11 @@ class Settings:
     date: str | None = None
     branch: str | None = None
     testbed: str | None = None
+    # Testbed decomposition (spec Decisions 8-9): a structured
+    # [testbeds] table (no CLI flag — tables don't fit one), plus the
+    # opt-in for testbeds the mapping does not cover.
+    testbeds: TestbedConfig | None = None
+    allow_unmapped: bool = False
 
     def branch_list(self) -> list[str]:
         return [name.strip() for name in self.branches.split(",") if name.strip()]
@@ -78,6 +84,7 @@ def _parse_config(path: Path) -> dict:
 
 
 def _validate(data: dict, path: Path) -> dict:
+    validated = {}
     for key, value in data.items():
         if key not in _FIELD_NAMES:
             known = ", ".join(sorted(_FIELD_NAMES))
@@ -85,13 +92,25 @@ def _validate(data: dict, path: Path) -> dict:
                 f"unknown config key {key!r} in {path} (known keys: {known})",
                 offending_input=str(path),
             )
-        if not isinstance(value, str):
+        if key == "testbeds":
+            validated[key] = parse_testbeds(value, path)
+        elif key == "allow_unmapped":
+            if not isinstance(value, bool):
+                raise UlvError(
+                    f"config key 'allow_unmapped' in {path} must be a "
+                    f"boolean, got {type(value).__name__}",
+                    offending_input=str(path),
+                )
+            validated[key] = value
+        elif not isinstance(value, str):
             raise UlvError(
                 f"config key {key!r} in {path} must be a string, "
                 f"got {type(value).__name__}",
                 offending_input=str(path),
             )
-    return data
+        else:
+            validated[key] = value
+    return validated
 
 
 def load_settings(config_path, flag_overrides: dict) -> Settings:

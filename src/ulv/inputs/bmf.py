@@ -35,6 +35,7 @@ from ulv.model import (
     ResultSeries,
     Revision,
 )
+from ulv.testbeds import resolve_testbeds
 
 _METADATA_FIELDS = ("commit", "date", "branch", "testbed")
 _METRIC_FIELDS = {"value", "lower_value", "upper_value"}
@@ -197,6 +198,19 @@ class BmfInputFormat:
         files = self._collect_files(source, options)
         metadata = self._resolve_metadata(files, options)
 
+        # With a decomposition configured, every testbed's factor dict is
+        # settled up front so uncovered names fail before any building
+        # (spec Decision 9: all of them listed, no site emitted).
+        testbed_config = options.get("testbeds")
+        factors_by_testbed: dict[str, dict[str, str]] | None = None
+        if testbed_config is not None:
+            testbed_names = {
+                meta["testbed"] for meta in metadata.values() if meta.get("testbed")
+            }
+            factors_by_testbed = resolve_testbeds(
+                testbed_names, testbed_config, bool(options.get("allow_unmapped"))
+            )
+
         revisions: dict[str, Revision] = {}
         environments: dict[str, Environment] = {}
         benchmarks: dict[str, Benchmark] = {}
@@ -224,8 +238,17 @@ class BmfInputFormat:
             testbed = meta.get("testbed")
             env_id = testbed or _DEFAULT_ENV
             if env_id not in environments:
-                factors = {"testbed": testbed} if testbed else {}
-                environments[env_id] = Environment(id=env_id, factors=factors)
+                extra = {}
+                if testbed and factors_by_testbed is not None:
+                    factors = factors_by_testbed[testbed]
+                    extra = {"testbed": testbed}
+                elif testbed:
+                    factors = {"testbed": testbed}
+                else:
+                    factors = {}
+                environments[env_id] = Environment(
+                    id=env_id, factors=factors, extra=extra
+                )
 
             for (bench, measure), point in _parse_bmf(path).items():
                 name = f"{bench} ({measure})"
