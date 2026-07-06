@@ -35,6 +35,22 @@ Patch applied to `summarygrid.js` (everything else is verbatim):
    applies the same sanitize+URI-encode as every other graph fetch and
    already appends `.json`.
 
+Patches for datasets without a `machine` axis (ASV data always has
+one, so upstream never exercises these paths; BMF/Bencher data has
+testbeds or user-declared factors instead):
+
+7. `graphdisplay.js`: `state.machine = index.params.machine` (line 369
+   upstream) and the machine selector panel (line 465) are guarded on
+   `index.params.machine !== undefined`. Unguarded, the undefined
+   `machine` state key made the graph permutation filter reject every
+   `graph_param_list` candidate ("No graphs to load.") and rendered an
+   empty machine panel. All other `state.machine`/`index.machines`
+   uses sit inside the guarded panel callback.
+8. `summarylist.js`: the same two guards (lines 126 and 151 upstream).
+   Here the unguarded code was near-benign (jQuery's `$.each` no-ops
+   on undefined and `get_valid_state` replaces the state wholesale)
+   but still rendered an empty machine panel.
+
 ## Third-party libraries (`static/vendor/`)
 
 Downloaded once from the URLs pinned in ASV's `index.html` at the

@@ -366,7 +366,9 @@ $(document).ready(function() {
                or when state selector is present
             */
             state = {};
-            state.machine = index.params.machine;
+            if (index.params.machine !== undefined) {
+                state.machine = index.params.machine;
+            }
 
             $.each(index.params, function(param, values) {
                 state[param] = values;
@@ -462,6 +464,7 @@ $(document).ready(function() {
         nav.empty();
 
         /* Machine selection */
+        if (index.params.machine !== undefined) {
         $.asv.ui.make_value_selector_panel(nav, 'machine', index.params.machine,  function(i, machine, button) {
             button.text(machine);
 
@@ -496,6 +499,7 @@ $(document).ready(function() {
                 animation: false
             });
         });
+        }
 
         /* Generic parameter selectors */
         $.each(index.params, function(param, values) {

@@ -161,6 +161,82 @@ def _crawl_grid_summaries(site: Path, base: str) -> None:
         assert urllib.request.urlopen(target).status == 200, (name, target)
 
 
+_MACHINE_GUARD = "index.params.machine !== undefined"
+
+
+def _frontend_graph_selection(site: Path) -> list:
+    """Python mirror of graphdisplay.js's default state setup (:363-379)
+    and permutation filter (:768): a graph_param_list candidate is shown
+    only when every state key's value list contains the candidate's
+    value ($.inArray against undefined always misses). Whether the
+    machine key is injected unconditionally mirrors the shipped JS, so
+    this fails against an unguarded frontend on machine-less data."""
+    index = json.loads((site / "index.json").read_text())
+    js = (site / "graphdisplay.js").read_text()
+    guarded = _MACHINE_GUARD in js
+
+    state = {}
+    if not guarded or "machine" in index["params"]:
+        state["machine"] = index["params"].get("machine")
+    for param, values in index["params"].items():
+        state[param] = values
+        if len(values) > 1 and param == "branch":
+            state[param] = [values[0]]
+
+    selected = []
+    for entry in index["graph_param_list"]:
+        if all(
+            values is not None and entry.get(key) in values
+            for key, values in state.items()
+        ):
+            selected.append(entry)
+    return selected
+
+
+def _build_opaque_bmf_site(tmp_path):
+    """Same BMF data, no testbed decomposition: single opaque axis."""
+    _build_bmf_site(tmp_path)
+    data = tmp_path / "bmf-data"
+    out_dir = tmp_path / "bmf-opaque-site"
+    assert (
+        main(
+            [
+                "build",
+                "-i",
+                "bmf",
+                "--input-dir",
+                str(data),
+                "--manifest",
+                str(data / "manifest.json"),
+                "-o",
+                str(out_dir),
+                "--project",
+                "bmfdemo",
+            ]
+        )
+        == 0
+    )
+    return out_dir
+
+
+class TestMachinelessGraphDisplay:
+    @pytest.mark.parametrize(
+        "builder",
+        [_build_bmf_site, _build_opaque_bmf_site, _build_asv_site],
+        ids=["bmf-decomposed", "bmf-opaque", "asv"],
+    )
+    def test_default_state_enumerates_graphs(self, builder, tmp_path):
+        site = builder(tmp_path)
+        assert _frontend_graph_selection(site), (
+            "frontend's default state selects no graphs ('No graphs to load.')"
+        )
+
+    def test_machine_guard_shipped_in_frontend(self, tmp_path):
+        site = _build_bmf_site(tmp_path)
+        assert _MACHINE_GUARD in (site / "graphdisplay.js").read_text()
+        assert _MACHINE_GUARD in (site / "summarylist.js").read_text()
+
+
 @pytest.mark.parametrize("builder", [_build_asv_site, _build_bmf_site])
 def test_full_site_crawls_cleanly_from_subdirectory(builder, tmp_path):
     _crawl(builder(tmp_path))
