@@ -96,10 +96,12 @@ def _register_builtins() -> None:
     # built-in name first (ADR 0002). Imported here, not at the top,
     # because plugin modules may themselves import ulv.plugins.
     from ulv.inputs.asv import AsvInputFormat
+    from ulv.inputs.bencher_api import BencherApiInputFormat
     from ulv.inputs.bmf import BmfInputFormat
     from ulv.outputs.html.generator import HtmlOutputGenerator
 
     input_formats.register(AsvInputFormat())
+    input_formats.register(BencherApiInputFormat())
     input_formats.register(BmfInputFormat())
     output_generators.register(HtmlOutputGenerator())
 

@@ -53,6 +53,11 @@ class Settings:
     # mapping does not cover.
     testbeds: TestbedConfig | None = None
     allow_unmapped: bool = False
+    # Bencher REST API source (spec Decision 1; ADR 0005). The token
+    # can also come from the BENCHER_API_TOKEN env var.
+    bencher_url: str = "https://api.bencher.dev"
+    bencher_project: str | None = None
+    bencher_token: str | None = None
 
     def branch_list(self) -> list[str]:
         return [name.strip() for name in self.branches.split(",") if name.strip()]

@@ -1,0 +1,494 @@
+[
+ {
+  "uuid": "r-1",
+  "user": {
+   "uuid": "u-1",
+   "name": "ci",
+   "slug": "ci"
+  },
+  "project": {
+   "uuid": "p-demo",
+   "name": "demo",
+   "slug": "demo"
+  },
+  "branch": {
+   "uuid": "br-main",
+   "name": "main",
+   "slug": "main",
+   "head": {
+    "uuid": "h-1",
+    "version": {
+     "number": 1,
+     "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "start_point": null,
+    "replaced": null,
+    "created": "2026-01-01T00:00:00Z"
+   },
+   "archived": null,
+   "created": "2025-12-01T00:00:00Z",
+   "modified": "2025-12-01T00:00:00Z",
+   "project": "p-demo"
+  },
+  "testbed": {
+   "uuid": "tb-linux-x64",
+   "name": "linux-x64",
+   "slug": "linux-x64",
+   "spec": null,
+   "archived": null,
+   "created": "2025-12-01T00:00:00Z",
+   "modified": "2025-12-01T00:00:00Z",
+   "project": "p-demo"
+  },
+  "adapter": "json",
+  "start_time": "2026-01-01T00:00:00Z",
+  "end_time": "2026-01-01T00:00:00Z",
+  "job": null,
+  "alerts": [],
+  "created": "2026-01-01T00:00:00Z",
+  "results": [
+   [
+    {
+     "iteration": 0,
+     "benchmark": {
+      "uuid": "b-adapter::json",
+      "name": "adapter::json",
+      "slug": "adapter-json",
+      "archived": null,
+      "created": "2025-12-01T00:00:00Z",
+      "modified": "2025-12-01T00:00:00Z",
+      "project": "p-demo"
+     },
+     "measures": [
+      {
+       "measure": {
+        "uuid": "m-latency",
+        "name": "Latency",
+        "slug": "latency",
+        "units": "nanoseconds (ns)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-3.5",
+        "value": 3.5,
+        "lower_value": 3.1,
+        "upper_value": 4.0
+       },
+       "boundary": null,
+       "threshold": null
+      },
+      {
+       "measure": {
+        "uuid": "m-throughput",
+        "name": "Throughput",
+        "slug": "throughput",
+        "units": "operations / second (ops/s)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-100.0",
+        "value": 100.0,
+        "lower_value": null,
+        "upper_value": null
+       },
+       "boundary": null,
+       "threshold": null
+      }
+     ]
+    },
+    {
+     "iteration": 0,
+     "benchmark": {
+      "uuid": "b-parser",
+      "name": "parser",
+      "slug": "parser",
+      "archived": null,
+      "created": "2025-12-01T00:00:00Z",
+      "modified": "2025-12-01T00:00:00Z",
+      "project": "p-demo"
+     },
+     "measures": [
+      {
+       "measure": {
+        "uuid": "m-latency",
+        "name": "Latency",
+        "slug": "latency",
+        "units": "nanoseconds (ns)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-7.0",
+        "value": 7.0,
+        "lower_value": null,
+        "upper_value": null
+       },
+       "boundary": null,
+       "threshold": null
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ {
+  "uuid": "r-2",
+  "user": {
+   "uuid": "u-1",
+   "name": "ci",
+   "slug": "ci"
+  },
+  "project": {
+   "uuid": "p-demo",
+   "name": "demo",
+   "slug": "demo"
+  },
+  "branch": {
+   "uuid": "br-main",
+   "name": "main",
+   "slug": "main",
+   "head": {
+    "uuid": "h-1",
+    "version": {
+     "number": 1,
+     "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "start_point": null,
+    "replaced": null,
+    "created": "2026-01-01T00:00:00Z"
+   },
+   "archived": null,
+   "created": "2025-12-01T00:00:00Z",
+   "modified": "2025-12-01T00:00:00Z",
+   "project": "p-demo"
+  },
+  "testbed": {
+   "uuid": "tb-macos-arm",
+   "name": "macos-arm",
+   "slug": "macos-arm",
+   "spec": null,
+   "archived": null,
+   "created": "2025-12-01T00:00:00Z",
+   "modified": "2025-12-01T00:00:00Z",
+   "project": "p-demo"
+  },
+  "adapter": "json",
+  "start_time": "2026-01-01T00:00:00Z",
+  "end_time": "2026-01-01T00:00:00Z",
+  "job": null,
+  "alerts": [],
+  "created": "2026-01-01T00:00:00Z",
+  "results": [
+   [
+    {
+     "iteration": 0,
+     "benchmark": {
+      "uuid": "b-adapter::json",
+      "name": "adapter::json",
+      "slug": "adapter-json",
+      "archived": null,
+      "created": "2025-12-01T00:00:00Z",
+      "modified": "2025-12-01T00:00:00Z",
+      "project": "p-demo"
+     },
+     "measures": [
+      {
+       "measure": {
+        "uuid": "m-latency",
+        "name": "Latency",
+        "slug": "latency",
+        "units": "nanoseconds (ns)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-9.5",
+        "value": 9.5,
+        "lower_value": 9.0,
+        "upper_value": 10.0
+       },
+       "boundary": null,
+       "threshold": null
+      },
+      {
+       "measure": {
+        "uuid": "m-throughput",
+        "name": "Throughput",
+        "slug": "throughput",
+        "units": "operations / second (ops/s)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-50.0",
+        "value": 50.0,
+        "lower_value": null,
+        "upper_value": null
+       },
+       "boundary": null,
+       "threshold": null
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ {
+  "uuid": "r-3",
+  "user": {
+   "uuid": "u-1",
+   "name": "ci",
+   "slug": "ci"
+  },
+  "project": {
+   "uuid": "p-demo",
+   "name": "demo",
+   "slug": "demo"
+  },
+  "branch": {
+   "uuid": "br-main",
+   "name": "main",
+   "slug": "main",
+   "head": {
+    "uuid": "h-2",
+    "version": {
+     "number": 2,
+     "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "start_point": null,
+    "replaced": null,
+    "created": "2026-02-01T00:00:00Z"
+   },
+   "archived": null,
+   "created": "2025-12-01T00:00:00Z",
+   "modified": "2025-12-01T00:00:00Z",
+   "project": "p-demo"
+  },
+  "testbed": {
+   "uuid": "tb-linux-x64",
+   "name": "linux-x64",
+   "slug": "linux-x64",
+   "spec": null,
+   "archived": null,
+   "created": "2025-12-01T00:00:00Z",
+   "modified": "2025-12-01T00:00:00Z",
+   "project": "p-demo"
+  },
+  "adapter": "json",
+  "start_time": "2026-02-01T00:00:00Z",
+  "end_time": "2026-02-01T00:00:00Z",
+  "job": null,
+  "alerts": [],
+  "created": "2026-02-01T00:00:00Z",
+  "results": [
+   [
+    {
+     "iteration": 0,
+     "benchmark": {
+      "uuid": "b-adapter::json",
+      "name": "adapter::json",
+      "slug": "adapter-json",
+      "archived": null,
+      "created": "2025-12-01T00:00:00Z",
+      "modified": "2025-12-01T00:00:00Z",
+      "project": "p-demo"
+     },
+     "measures": [
+      {
+       "measure": {
+        "uuid": "m-latency",
+        "name": "Latency",
+        "slug": "latency",
+        "units": "nanoseconds (ns)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-3.0",
+        "value": 3.0,
+        "lower_value": 2.9,
+        "upper_value": 3.2
+       },
+       "boundary": null,
+       "threshold": null
+      },
+      {
+       "measure": {
+        "uuid": "m-throughput",
+        "name": "Throughput",
+        "slug": "throughput",
+        "units": "operations / second (ops/s)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-110.0",
+        "value": 110.0,
+        "lower_value": null,
+        "upper_value": null
+       },
+       "boundary": null,
+       "threshold": null
+      }
+     ]
+    },
+    {
+     "iteration": 0,
+     "benchmark": {
+      "uuid": "b-parser",
+      "name": "parser",
+      "slug": "parser",
+      "archived": null,
+      "created": "2025-12-01T00:00:00Z",
+      "modified": "2025-12-01T00:00:00Z",
+      "project": "p-demo"
+     },
+     "measures": [
+      {
+       "measure": {
+        "uuid": "m-latency",
+        "name": "Latency",
+        "slug": "latency",
+        "units": "nanoseconds (ns)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-6.5",
+        "value": 6.5,
+        "lower_value": null,
+        "upper_value": null
+       },
+       "boundary": null,
+       "threshold": null
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ {
+  "uuid": "r-4",
+  "user": {
+   "uuid": "u-1",
+   "name": "ci",
+   "slug": "ci"
+  },
+  "project": {
+   "uuid": "p-demo",
+   "name": "demo",
+   "slug": "demo"
+  },
+  "branch": {
+   "uuid": "br-main",
+   "name": "main",
+   "slug": "main",
+   "head": {
+    "uuid": "h-2",
+    "version": {
+     "number": 2,
+     "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "start_point": null,
+    "replaced": null,
+    "created": "2026-02-01T00:00:00Z"
+   },
+   "archived": null,
+   "created": "2025-12-01T00:00:00Z",
+   "modified": "2025-12-01T00:00:00Z",
+   "project": "p-demo"
+  },
+  "testbed": {
+   "uuid": "tb-macos-arm",
+   "name": "macos-arm",
+   "slug": "macos-arm",
+   "spec": null,
+   "archived": null,
+   "created": "2025-12-01T00:00:00Z",
+   "modified": "2025-12-01T00:00:00Z",
+   "project": "p-demo"
+  },
+  "adapter": "json",
+  "start_time": "2026-02-01T00:00:00Z",
+  "end_time": "2026-02-01T00:00:00Z",
+  "job": null,
+  "alerts": [],
+  "created": "2026-02-01T00:00:00Z",
+  "results": [
+   [
+    {
+     "iteration": 0,
+     "benchmark": {
+      "uuid": "b-adapter::json",
+      "name": "adapter::json",
+      "slug": "adapter-json",
+      "archived": null,
+      "created": "2025-12-01T00:00:00Z",
+      "modified": "2025-12-01T00:00:00Z",
+      "project": "p-demo"
+     },
+     "measures": [
+      {
+       "measure": {
+        "uuid": "m-latency",
+        "name": "Latency",
+        "slug": "latency",
+        "units": "nanoseconds (ns)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-9.0",
+        "value": 9.0,
+        "lower_value": 8.8,
+        "upper_value": 9.4
+       },
+       "boundary": null,
+       "threshold": null
+      },
+      {
+       "measure": {
+        "uuid": "m-throughput",
+        "name": "Throughput",
+        "slug": "throughput",
+        "units": "operations / second (ops/s)",
+        "archived": null,
+        "created": "2025-12-01T00:00:00Z",
+        "modified": "2025-12-01T00:00:00Z",
+        "project": "p-demo"
+       },
+       "metric": {
+        "uuid": "x-55.0",
+        "value": 55.0,
+        "lower_value": null,
+        "upper_value": null
+       },
+       "boundary": null,
+       "threshold": null
+      }
+     ]
+    }
+   ]
+  ]
+ }
+]

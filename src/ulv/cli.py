@@ -118,6 +118,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="include testbeds missing from the [testbeds] mapping with "
         "'unknown' factor values instead of failing",
     )
+    build.add_argument(
+        "--bencher-url",
+        help="Bencher server URL for the bencher-api input "
+        "(default: https://api.bencher.dev)",
+    )
+    build.add_argument(
+        "--bencher-project",
+        help="Bencher project slug or UUID for the bencher-api input",
+    )
+    build.add_argument(
+        "--bencher-token",
+        help="Bencher API token; prefer the BENCHER_API_TOKEN env var — "
+        "a flag value lands in shell history",
+    )
 
     serve = subparsers.add_parser(
         "serve",
@@ -168,9 +182,17 @@ def _cmd_build(args: argparse.Namespace) -> int:
                 load_testbeds_file(args.testbeds_file) if args.testbeds_file else None
             ),
             "allow_unmapped": args.allow_unmapped,
+            "bencher_url": args.bencher_url,
+            "bencher_project": args.bencher_project,
+            "bencher_token": args.bencher_token,
         },
     )
-    for key in ("input_format", "input_dir", "output_dir"):
+    # The input source is a directory for file-based formats or a
+    # Bencher project for the API format.
+    required = ["input_format", "output_dir"]
+    if settings.bencher_project is None:
+        required.insert(1, "input_dir")
+    for key in required:
         if getattr(settings, key) is None:
             flag = "--" + key.replace("_", "-")
             raise UlvError(
@@ -193,6 +215,9 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "testbed": settings.testbed,
             "testbeds": settings.testbeds,
             "allow_unmapped": settings.allow_unmapped,
+            "bencher_url": settings.bencher_url,
+            "bencher_project": settings.bencher_project,
+            "bencher_token": settings.bencher_token,
         },
     )
     generator = plugins.output_generators.get("html")

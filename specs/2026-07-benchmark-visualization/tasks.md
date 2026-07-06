@@ -118,18 +118,18 @@ green.
 
 ## Phase 10 — Bencher REST API fetcher
 
-- [ ] Author ADR: HTTP client for Bencher fetch (stdlib urllib +
+- [x] Author ADR: HTTP client for Bencher fetch (stdlib urllib +
       transport seam)
-- [ ] `src/ulv/inputs/bencher_api.py`: transport seam, bearer token
+- [x] `src/ulv/inputs/bencher_api.py`: transport seam, bearer token
       (flag/config/env, never logged), paginated fetch, map API JSON
       via BMF model path; register `bencher-api`
-- [ ] Record API response fixtures under `tests/fixtures/bencher_api/`
-- [ ] Errors: HTTP/auth/malformed payload → `UlvError`; no partial
+- [x] Record API response fixtures under `tests/fixtures/bencher_api/`
+- [x] Errors: HTTP/auth/malformed payload → `UlvError`; no partial
       site
-- [ ] Tests: fetched site == equivalent local-file site; pagination;
+- [x] Tests: fetched site == equivalent local-file site; pagination;
       401 handling; token absent from error text; http.server stub
       integration test
-- [ ] `make verify` green
+- [x] `make verify` green
 
 ## Phase 11 — Hardening, help completeness, docs
 
