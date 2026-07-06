@@ -1,0 +1,17 @@
+{
+  "parse_json": {
+    "latency": {
+      "value": 10.1,
+      "lower_value": 9.8,
+      "upper_value": 10.5
+    },
+    "throughput": {
+      "value": 1250.0
+    }
+  },
+  "serialize_json": {
+    "latency": {
+      "value": 7.2
+    }
+  }
+}
