@@ -53,7 +53,11 @@ def _build_bmf_site(tmp_path: Path) -> Path:
         ("c2" * 4, "2026-02-01T00:00:00Z", "macos-arm", 20.0),
     ]:
         name = f"{testbed}-{commit[:2]}.json"
-        (data / name).write_text(json.dumps({"bench": {"latency": {"value": value}}}))
+        # a Bencher-style '::' name sanitizes differently on disk, so a
+        # frontend fetching raw benchmark names cannot pass by luck
+        (data / name).write_text(
+            json.dumps({"adapter::json": {"latency": {"value": value}}})
+        )
         manifest[name] = {"commit": commit, "date": date, "testbed": testbed}
     (data / "manifest.json").write_text(json.dumps(manifest))
     beds = tmp_path / "beds.toml"
@@ -119,10 +123,42 @@ def _crawl(site: Path) -> None:
         for graph in site.glob("graphs/**/*.json"):
             rel = urllib.parse.quote(graph.relative_to(site).as_posix())
             assert urllib.request.urlopen(base + rel).status == 200, graph
+        _crawl_grid_summaries(site, base)
     finally:
         server.shutdown()
         thread.join()
         server.server_close()
+
+
+# The characters encodeURIComponent leaves unescaped, so the quoted
+# path matches what the frontend requests byte-for-byte.
+_ENCODE_URI_COMPONENT_SAFE = "!'()*-._~"
+
+
+def _crawl_grid_summaries(site: Path, base: str) -> None:
+    """Fetch each benchmark's grid thumbnail the way the shipped
+    summarygrid.js does. The on-disk file lives at the SANITIZED name
+    (paths.sanitize_filename), so a frontend fetching the raw name 404s
+    for names like 'adapter::json (latency)' — ASV's dotted names only
+    passed by coincidence."""
+    from ulv.outputs.html.paths import sanitize_filename
+
+    grid_js = (site / "summarygrid.js").read_text()
+    patched = "graph_to_path" in grid_js
+    if not patched:
+        assert "'graphs/summary/' + bm.name" in grid_js, (
+            "summarygrid.js fetches summaries some third way; update this mirror"
+        )
+    index = json.loads((site / "index.json").read_text())
+    for name in index["benchmarks"]:
+        fetched_name = sanitize_filename(name) if patched else name
+        target = (
+            base
+            + "graphs/summary/"
+            + urllib.parse.quote(fetched_name, safe=_ENCODE_URI_COMPONENT_SAFE)
+            + ".json"
+        )
+        assert urllib.request.urlopen(target).status == 200, (name, target)
 
 
 @pytest.mark.parametrize("builder", [_build_asv_site, _build_bmf_site])

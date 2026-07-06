@@ -62,7 +62,7 @@ $(document).ready(function() {
 
         callback_in_view(plot_div, function() {
             $.asv.load_graph_data(
-                'graphs/summary/' + bm.name + '.json'
+                $.asv.graph_to_path(bm.name, {summary: ''})
             ).done(function(data) {
                 var options = {
                     colors: $.asv.colors,

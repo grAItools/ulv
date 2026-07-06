@@ -23,6 +23,18 @@ Patches applied to `index.html` (everything else is verbatim):
 4. Removed the `#regressions-display` div.
 5. Removed the atom-feed link (`regressions.xml`).
 
+Patch applied to `summarygrid.js` (everything else is verbatim):
+
+6. The grid thumbnail fetch `'graphs/summary/' + bm.name + '.json'`
+   (line 65 upstream) is replaced with
+   `$.asv.graph_to_path(bm.name, {summary: ''})`. Summary files are
+   written at the sanitized benchmark name, but the raw concatenation
+   only resolves when the name sanitizes to itself — true for ASV's
+   dotted identifiers, false for Bencher-style names like
+   `adapter::json (latency)`, whose thumbnails 404'd. `graph_to_path`
+   applies the same sanitize+URI-encode as every other graph fetch and
+   already appends `.json`.
+
 ## Third-party libraries (`static/vendor/`)
 
 Downloaded once from the URLs pinned in ASV's `index.html` at the
