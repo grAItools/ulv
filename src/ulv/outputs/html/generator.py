@@ -251,7 +251,10 @@ class HtmlOutputGenerator:
         Step detection is skipped (spec Decision 6): last_value comes from
         the raw series tail, last_err is the tail point's ci_99 width
         recovered from its weight (weight = 2/width), and the change
-        columns stay null."""
+        columns stay null. When several runs at one revision were
+        averaged, weights average arithmetically, so the recovered
+        width is the harmonic mean of the runs' ci widths — not any
+        single run's width."""
         results: dict[str, list] = {}
         for benchmark_name, benchmark in sorted(dataset.benchmarks.items()):
             graphs = graph_set.get_graph_group(benchmark_name)

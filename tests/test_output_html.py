@@ -551,3 +551,31 @@ class TestPackaging:
         static = importlib.resources.files("ulv.outputs.html") / "static"
         assert (static / "index.html").is_file()
         assert (static / "vendor" / "css" / "bootstrap.min.css").is_file()
+
+    def test_wheel_ships_static_tree_and_licenses(self, tmp_path):
+        # An editable install resolves static/ from the source tree;
+        # only a real wheel build proves the files ship.
+        import shutil
+        import subprocess
+        import zipfile
+
+        uv = shutil.which("uv")
+        if uv is None:
+            pytest.skip("uv not on PATH")
+        project = Path(__file__).parent.parent
+        subprocess.run(
+            [uv, "build", "--wheel", "-o", str(tmp_path)],
+            cwd=project,
+            check=True,
+            capture_output=True,
+        )
+        (wheel,) = tmp_path.glob("*.whl")
+        names = set(zipfile.ZipFile(wheel).namelist())
+        for required in [
+            "ulv/outputs/html/static/index.html",
+            "ulv/outputs/html/static/vendor/css/bootstrap.min.css",
+            "ulv/outputs/html/static/vendor/fonts/glyphicons-halflings-regular.woff",
+            "ulv/outputs/html/LICENSES/asv.txt",
+            "ulv/outputs/html/VENDORED.md",
+        ]:
+            assert required in names, required

@@ -144,7 +144,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.add_argument(
         "directory",
-        help="site directory to serve (output of 'ulv build')",
+        nargs="?",
+        default=None,
+        help="site directory to serve (output of 'ulv build'); defaults "
+        "to the config file's output_dir",
+    )
+    serve.add_argument(
+        "--config",
+        metavar="FILE",
+        help="config file supplying output_dir when no directory is "
+        "given; defaults to ./ulv.toml when present",
     )
     serve.add_argument(
         "--host",
@@ -256,9 +265,20 @@ def serve_site(directory, host: str, port: int) -> http.server.ThreadingHTTPServ
 
 
 def _cmd_serve(args: argparse.Namespace) -> int:
-    with serve_site(args.directory, args.host, args.port) as server:
-        host, port = server.server_address[:2]
-        print(f"Serving {args.directory} at http://{host}:{port}/ (Ctrl+C to stop)")
+    directory = args.directory
+    if directory is None:
+        directory = load_settings(args.config, {}).output_dir
+        if directory is None:
+            raise UlvError(
+                "no site directory: pass one as an argument or set "
+                "'output_dir' in the config file"
+            )
+    with serve_site(directory, args.host, args.port) as server:
+        port = server.server_address[1]
+        # A wildcard bind address is not something a browser can open;
+        # print the loopback form for the clickable URL.
+        display_host = "127.0.0.1" if args.host in ("0.0.0.0", "::", "") else args.host
+        print(f"Serving {directory} at http://{display_host}:{port}/ (Ctrl+C to stop)")
         try:
             server.serve_forever()
         except KeyboardInterrupt:
@@ -270,6 +290,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command is None:
+        parser.print_help()
         return 0
     try:
         if args.command == "build":
@@ -278,5 +299,11 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_serve(args)
         raise AssertionError(f"unhandled command {args.command!r}")
     except UlvError as exc:
+        print(f"ulv: error: {exc}", file=sys.stderr)
+        return 1
+    except OSError as exc:
+        # Filesystem/network failures outside ulv's control (unwritable
+        # output dir, disk full) get the same clean diagnostic shape as
+        # UlvError rather than a traceback.
         print(f"ulv: error: {exc}", file=sys.stderr)
         return 1

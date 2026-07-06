@@ -133,17 +133,18 @@ green.
 
 ## Phase 11 — Hardening, help completeness, docs
 
-- [ ] Help audit test: every config key has a flag, every documented
+- [x] Help audit test: every config key has a flag, every documented
       invocation parses
-- [ ] Table-driven error-path test (ASV/BMF/manifest/config/testbed/
+- [x] Table-driven error-path test (ASV/BMF/manifest/config/testbed/
       API): non-zero exit, input named, no partial site
-- [ ] Crawl test: ASV site + BMF multi-testbed site served from
+- [x] Crawl test: ASV site + BMF multi-testbed site served from
       subdirectory, all assets 200, no external URLs; manual browser
-      pass on both
-- [ ] Wire Phase 7 git enrichment into the BMF input (plan Phase 8
+      pass on both (sites prepared for the coordinator's pass)
+- [x] Wire Phase 7 git enrichment into the BMF input (plan Phase 8
       step 2 says it "applies when configured") or record the deferral
-      in plan.md/an ADR — `bmf` currently rejects the `repo` setting
-      with an explicit UlvError
-- [ ] Update `docs/architecture.md` (module map, ADR links);
+      → recorded in docs/architecture.md "Deferred / future work";
+      `bmf` and `bencher-api` reject `repo`/`branches` with explicit
+      UlvErrors
+- [x] Update `docs/architecture.md` (module map, ADR links);
       `CHANGELOG.md` entry; confirm 4 ADRs exist
-- [ ] `make verify` green; run `/verify` (Reviewer)
+- [x] `make verify` green; run `/verify` (Reviewer)

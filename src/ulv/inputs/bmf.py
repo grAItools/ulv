@@ -194,6 +194,12 @@ class BmfInputFormat:
                 "remove the 'repo' setting or order results via metadata "
                 "dates"
             )
+        if options.get("branches"):
+            raise UlvError(
+                "'branches' is not supported for the 'bmf' input; branch "
+                "metadata comes from the sidecar (manifest, "
+                "filename_pattern, or --branch)"
+            )
         source = Path(source)
         files = self._collect_files(source, options)
         metadata = self._resolve_metadata(files, options)

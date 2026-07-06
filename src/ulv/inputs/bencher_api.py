@@ -75,6 +75,16 @@ class BencherApiInputFormat:
 
     def load(self, source, options) -> Dataset:
         options = options or {}
+        if options.get("repo"):
+            raise UlvError(
+                "git enrichment is not supported for the 'bencher-api' "
+                "input; ordering comes from report timestamps"
+            )
+        if options.get("branches"):
+            raise UlvError(
+                "'branches' is not supported for the 'bencher-api' input; "
+                "branch attribution comes from the API reports"
+            )
         token = options.get("bencher_token") or os.environ.get("BENCHER_API_TOKEN")
         try:
             return self._load(options, token)
@@ -145,14 +155,20 @@ class BencherApiInputFormat:
                         id=testbed, factors={"testbed": testbed}
                     )
 
-            for (bench, measure), point in points.items():
+            for (bench, measure, units), point in points.items():
                 name = f"{bench} ({measure})"
                 if name not in benchmarks:
+                    extra = {"bmf_benchmark": bench, "bmf_measure": measure}
+                    if units:
+                        # human-readable measure units ("nanoseconds
+                        # (ns)"), for display; the unit slug stays the
+                        # model unit like the bmf input
+                        extra["units"] = units
                     benchmarks[name] = Benchmark(
                         name=name,
                         unit=measure,
                         pretty_name=name,
-                        extra={"bmf_benchmark": bench, "bmf_measure": measure},
+                        extra=extra,
                     )
                 series_points.setdefault((name, testbed), {}).setdefault(
                     revision.id, point
@@ -246,17 +262,18 @@ def _parse_report(report: dict):
 
     testbed = report["testbed"].get("slug") or report["testbed"]["name"]
 
-    points: dict[tuple[str, str], ResultPoint] = {}
+    points: dict[tuple[str, str, str | None], ResultPoint] = {}
     for iteration in report.get("results") or []:
         for result in iteration:
             bench = result["benchmark"]["name"]
             for entry in result.get("measures") or []:
                 measure = entry["measure"]["slug"]
+                units = entry["measure"].get("units")
                 metric = entry["metric"]
                 # first iteration wins; repeats of a benchmark within
                 # one report are ignored
                 points.setdefault(
-                    (bench, measure),
+                    (bench, measure, units),
                     ResultPoint(
                         value=metric["value"],
                         lower=metric.get("lower_value"),

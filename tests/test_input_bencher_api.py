@@ -215,6 +215,10 @@ class TestSiteEquivalence:
 
         api_index = json.loads((api_site / "index.json").read_text())
         bmf_index = json.loads((bmf_site / "index.json").read_text())
+        # The API carries one display nicety local BMF files can't: the
+        # measure's human-readable units string.
+        for entry in api_index["benchmarks"].values():
+            entry.pop("units", None)
         assert api_index == bmf_index
 
         api_graphs = {
