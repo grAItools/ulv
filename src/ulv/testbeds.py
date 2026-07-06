@@ -11,8 +11,11 @@ later) applies the same helpers.
 
 from __future__ import annotations
 
+import json
 import sys
+import tomllib
 from dataclasses import dataclass
+from pathlib import Path
 
 from ulv.errors import UlvError
 
@@ -60,9 +63,9 @@ def parse_testbeds(data, source) -> TestbedConfig:
     if (
         not isinstance(factors, list)
         or not factors
-        or not all(isinstance(f, str) for f in factors)
+        or not all(isinstance(f, str) and f for f in factors)
     ):
-        raise fail("'factors' must be a non-empty list of factor names")
+        raise fail("'factors' must be a non-empty list of non-empty factor names")
     if len(set(factors)) != len(factors):
         raise fail("'factors' contains duplicate names")
     reserved = sorted(set(factors) & RESERVED_FACTOR_NAMES)
@@ -90,13 +93,33 @@ def parse_testbeds(data, source) -> TestbedConfig:
                 f"entry for testbed {testbed!r} has undeclared factor(s) {extra}"
             )
         for factor, value in entry.items():
-            if not isinstance(value, str):
+            if not isinstance(value, str) or not value:
                 raise fail(
                     f"value for factor {factor!r} of testbed {testbed!r} "
-                    f"must be a string"
+                    f"must be a non-empty string"
                 )
         mapping.append((testbed, tuple((factor, entry[factor]) for factor in factors)))
     return TestbedConfig(factors=tuple(factors), mapping=tuple(mapping))
+
+
+def load_testbeds_file(path) -> TestbedConfig:
+    """Standalone testbed mapping named by `--testbeds-file`: a TOML (or
+    JSON, by `.json` suffix) document carrying the `[testbeds]` table
+    body at top level — `factors` plus `map`."""
+    path = Path(path)
+    if not path.is_file():
+        raise UlvError(f"testbeds file not found: {path}", offending_input=str(path))
+    try:
+        raw = path.read_bytes()
+        if path.suffix == ".json":
+            data = json.loads(raw)
+        else:
+            data = tomllib.loads(raw.decode())
+    except (OSError, ValueError, UnicodeDecodeError) as exc:
+        raise UlvError(
+            f"malformed testbeds file {path}: {exc}", offending_input=str(path)
+        ) from exc
+    return parse_testbeds(data, path)
 
 
 def resolve_testbeds(

@@ -9,6 +9,7 @@ from pathlib import Path
 from ulv import __version__, plugins
 from ulv.config import load_settings
 from ulv.errors import UlvError
+from ulv.testbeds import load_testbeds_file
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -104,6 +105,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="testbed name for a single BMF input file",
     )
     build.add_argument(
+        "--testbeds-file",
+        metavar="FILE",
+        help="testbed decomposition file (TOML, or JSON with a .json "
+        "suffix) with top-level 'factors' and 'map' — the same shape as "
+        "the [testbeds] config table, which it overrides",
+    )
+    build.add_argument(
         "--allow-unmapped",
         action="store_true",
         default=None,
@@ -156,6 +164,9 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "date": args.date,
             "branch": args.branch,
             "testbed": args.testbed,
+            "testbeds": (
+                load_testbeds_file(args.testbeds_file) if args.testbeds_file else None
+            ),
             "allow_unmapped": args.allow_unmapped,
         },
     )

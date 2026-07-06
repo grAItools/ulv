@@ -236,6 +236,26 @@ class TestConfigValidation:
         with pytest.raises(UlvError, match="factors"):
             load_settings(config, {})
 
+    def test_unknown_testbeds_subkey_named(self, tmp_path):
+        config = _write_config(tmp_path, '[testbeds]\nfactrs = ["os"]\n')
+        with pytest.raises(UlvError, match="factrs"):
+            load_settings(config, {})
+
+    def test_empty_factor_name_rejected(self, tmp_path):
+        config = _write_config(
+            tmp_path, '[testbeds]\nfactors = ["", "os"]\n[testbeds.map]\n'
+        )
+        with pytest.raises(UlvError, match="factors"):
+            load_settings(config, {})
+
+    def test_empty_factor_value_rejected(self, tmp_path):
+        config = _write_config(
+            tmp_path,
+            '[testbeds]\nfactors = ["os"]\n[testbeds.map.linux-x64]\nos = ""\n',
+        )
+        with pytest.raises(UlvError, match="os"):
+            load_settings(config, {})
+
     def test_allow_unmapped_must_be_boolean(self, tmp_path):
         config = _write_config(tmp_path, 'allow_unmapped = "yes"\n')
         with pytest.raises(UlvError, match="allow_unmapped"):
@@ -250,3 +270,71 @@ class TestConfigValidation:
         config = _write_config(tmp_path, "allow_unmapped = false\n")
         settings = load_settings(config, {"allow_unmapped": True})
         assert settings.allow_unmapped is True
+
+
+# A standalone testbeds file carries the [testbeds] table body at top
+# level: 'factors' and 'map'.
+OVERRIDE_TESTBEDS_TOML = """\
+factors = ["os", "arch"]
+
+[map.linux-x64]
+os = "LNX"
+arch = "X64"
+
+[map.macos-arm]
+os = "MAC"
+arch = "ARM"
+"""
+
+
+class TestTestbedsFileFlag:
+    def test_flag_file_wins_over_config_table(self, tmp_path):
+        config, out_dir = _project(tmp_path, TESTBED_TOML, with_win=False)
+        override = tmp_path / "beds.toml"
+        override.write_text(OVERRIDE_TESTBEDS_TOML)
+        rc = main(["build", "--config", str(config), "--testbeds-file", str(override)])
+        assert rc == 0
+        index = json.loads((out_dir / "index.json").read_text())
+        assert index["params"]["os"] == ["LNX", "MAC"]
+        assert index["params"]["arch"] == ["ARM", "X64"]
+
+    def test_json_testbeds_file(self, tmp_path):
+        config, out_dir = _project(tmp_path, "", with_win=False)
+        override = tmp_path / "beds.json"
+        override.write_text(
+            json.dumps(
+                {
+                    "factors": ["os", "arch"],
+                    "map": {
+                        "linux-x64": {"os": "LNX", "arch": "X64"},
+                        "macos-arm": {"os": "MAC", "arch": "ARM"},
+                    },
+                }
+            )
+        )
+        rc = main(["build", "--config", str(config), "--testbeds-file", str(override)])
+        assert rc == 0
+        index = json.loads((out_dir / "index.json").read_text())
+        assert index["params"]["os"] == ["LNX", "MAC"]
+
+    def test_missing_testbeds_file_named(self, tmp_path, capsys):
+        config, _ = _project(tmp_path, "", with_win=False)
+        rc = main(
+            [
+                "build",
+                "--config",
+                str(config),
+                "--testbeds-file",
+                str(tmp_path / "nope.toml"),
+            ]
+        )
+        assert rc == 1
+        assert "nope.toml" in capsys.readouterr().err
+
+    def test_malformed_testbeds_file_named(self, tmp_path, capsys):
+        config, _ = _project(tmp_path, "", with_win=False)
+        override = tmp_path / "beds.toml"
+        override.write_text("factors = [broken")
+        rc = main(["build", "--config", str(config), "--testbeds-file", str(override)])
+        assert rc == 1
+        assert "beds.toml" in capsys.readouterr().err

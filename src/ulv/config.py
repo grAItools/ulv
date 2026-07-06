@@ -3,8 +3,10 @@
 Precedence is defaults < config file < CLI flags (spec Decision 7; see
 ADR 0004). The config file is TOML by default, JSON when the path ends
 in `.json`; without `--config`, `./ulv.toml` is used when present.
-Every settings field has a matching kebab-case CLI flag, and unknown or
-mistyped config keys fail loudly naming the key and file.
+Every scalar settings field has a matching kebab-case CLI flag; the
+structured `[testbeds]` table is overridden by `--testbeds-file`, which
+names a file with the same table body. Unknown or mistyped config keys
+fail loudly naming the key and file.
 """
 
 from __future__ import annotations
@@ -46,8 +48,9 @@ class Settings:
     branch: str | None = None
     testbed: str | None = None
     # Testbed decomposition (spec Decisions 8-9): a structured
-    # [testbeds] table (no CLI flag — tables don't fit one), plus the
-    # opt-in for testbeds the mapping does not cover.
+    # [testbeds] table (overridden by --testbeds-file, since a table
+    # doesn't fit a flag value), plus the opt-in for testbeds the
+    # mapping does not cover.
     testbeds: TestbedConfig | None = None
     allow_unmapped: bool = False
 
