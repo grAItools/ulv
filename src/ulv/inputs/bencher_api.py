@@ -58,6 +58,11 @@ class UrllibTransport:
             raise UlvError(
                 f"cannot reach {url}: {exc.reason}", offending_input=url
             ) from None
+        except TimeoutError as exc:
+            # A socket timeout mid-read is not wrapped in URLError.
+            raise UlvError(
+                f"timed out reading {url}: {exc}", offending_input=url
+            ) from None
 
 
 class BencherApiInputFormat:
@@ -97,7 +102,10 @@ class BencherApiInputFormat:
         for report in reports:
             try:
                 parsed.append(_parse_report(report))
-            except (KeyError, TypeError, AttributeError) as exc:
+            # ValueError covers non-ISO start_time strings — which are
+            # server-controlled text and must flow through the UlvError
+            # path so the token scrubber sees them.
+            except (KeyError, TypeError, AttributeError, ValueError) as exc:
                 raise UlvError(
                     f"malformed report payload from {endpoint}: {exc!r}",
                     offending_input=endpoint,

@@ -187,10 +187,13 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "bencher_token": args.bencher_token,
         },
     )
-    # The input source is a directory for file-based formats or a
-    # Bencher project for the API format.
+    # The input source depends on the format: the bencher-api input
+    # reads a project from a server, every file-based format a
+    # directory.
     required = ["input_format", "output_dir"]
-    if settings.bencher_project is None:
+    if settings.input_format == "bencher-api":
+        required.append("bencher_project")
+    else:
         required.insert(1, "input_dir")
     for key in required:
         if getattr(settings, key) is None:

@@ -252,6 +252,20 @@ class TestErrors:
         assert "token" in message.lower()
         assert SECRET not in message
 
+    # A server echoing the token back inside a non-ISO start_time must
+    # surface as a scrubbed UlvError, not a raw ValueError.
+    _ECHOING_REPORT = json.dumps(
+        [
+            {
+                "uuid": "r-echo",
+                "branch": {"name": "main", "head": {"version": {}}},
+                "testbed": {"name": "tb", "slug": "tb"},
+                "start_time": f"{SECRET}-garbage-not-a-date",
+                "results": [],
+            }
+        ]
+    ).encode()
+
     @pytest.mark.parametrize(
         ("status", "body"),
         [
@@ -259,6 +273,7 @@ class TestErrors:
             (200, b"{not json"),
             (200, b'{"unexpected": "object"}'),
             (200, b'[{"broken": true}]'),
+            (200, _ECHOING_REPORT),
         ],
     )
     def test_token_never_appears_in_any_error(self, status, body):
@@ -349,6 +364,28 @@ class TestHttpServerStub:
 
 
 class TestCli:
+    def test_bencher_api_without_project_gives_clear_message(self, tmp_path, capsys):
+        rc = main(["build", "-i", "bencher-api", "-o", str(tmp_path / "site")])
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert "bencher-project" in err or "bencher_project" in err
+        assert "input_dir" not in err
+
+    def test_file_format_still_requires_input_dir(self, tmp_path, capsys):
+        rc = main(
+            [
+                "build",
+                "-i",
+                "bmf",
+                "--bencher-project",
+                "demo",
+                "-o",
+                str(tmp_path / "site"),
+            ]
+        )
+        assert rc == 1
+        assert "input_dir" in capsys.readouterr().err
+
     def test_build_without_input_dir(self, tmp_path, monkeypatch):
         plugin = plugins.input_formats.get("bencher-api")
         monkeypatch.setattr(plugin, "transport", FakeTransport())
