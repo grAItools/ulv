@@ -1,0 +1,45 @@
+# Zensical documentation configuration for Unladen Velocity
+# Builds user-facing documentation from docs/user/ into _site/
+
+[project]
+site_name = "Unladen Velocity User Guide"
+site_description = "Documentation for the Unladen Velocity benchmark visualization tool"
+docs_dir = "docs/user"
+site_dir = "_site"
+
+[[project.nav]]
+Home = "index.md"
+
+[[project.nav]]
+"Getting Started" = [
+    { Quickstart = "quickstart.md" },
+]
+
+[[project.nav]]
+"Input Formats" = [
+    { "ASV Format" = "asv.md" },
+    { "BMF Format" = "bmf.md" },
+    { "Bencher API" = "bencher-api.md" },
+]
+
+[[project.nav]]
+Configuration = [
+    { "Configuration File" = "config.md" },
+    { "Testbed Decomposition" = "testbeds.md" },
+]
+
+[[project.nav]]
+Reference = [
+    { "CLI Reference" = "cli-reference.md" },
+    { "API Reference" = [
+        { "Overview" = "api/index.md" },
+        { "Model" = "api/model.md" },
+        { "Config" = "api/config.md" },
+        { "Errors" = "api/errors.md" },
+        { "Testbeds" = "api/testbeds.md" },
+        { "Plugins" = "api/plugins.md" },
+    ] },
+]
+
+[[project.plugins]]
+mkdocstrings = { config = { handlers = { python = { paths = ["src"] } } } }

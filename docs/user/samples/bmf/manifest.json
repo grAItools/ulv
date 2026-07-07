@@ -1,0 +1,17 @@
+{
+  "commit-001.json": {
+    "commit": "a1b2c3d4",
+    "date": "2026-01-15T10:00:00Z",
+    "testbed": "linux-x64"
+  },
+  "commit-002.json": {
+    "commit": "e5f6a7b8",
+    "date": "2026-01-16T14:30:00Z",
+    "testbed": "linux-x64"
+  },
+  "commit-003.json": {
+    "commit": "c9d0e1f2",
+    "date": "2026-01-17T09:15:00Z",
+    "testbed": "linux-x64"
+  }
+}

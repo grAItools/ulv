@@ -1,5 +1,8 @@
 # Python
 .venv/
+
+# Documentation build output
+_site/
 __pycache__/
 *.py[cod]
 .pytest_cache/

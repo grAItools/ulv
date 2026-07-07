@@ -32,6 +32,8 @@ run() {
 
 run "lint" uv run ruff check .
 run "test" uv run pytest -q
+run "docs" uv run python scripts/check_docs_staleness.py
+run "docs-build" uv run zensical build
 
 if [ "$failed" -ne 0 ]; then
   printf "\nverify: one or more checks failed.\n"
