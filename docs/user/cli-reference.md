@@ -36,7 +36,7 @@ ulv build [-h] [--config FILE] [--input-format INPUT_FORMAT] [--input-dir INPUT_
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--project` | string |  | project name shown in the generated site |
-| `--project-url` | string |  | URL the project name in the navbar links to |
+| `--project-url` | string | `#` | URL the project name in the navbar links to |
 | `--show-commit-url` | string |  | URL prefix for commit links (commit hash is appended) |
 
 ### Git enrichment (ASV)
@@ -62,13 +62,13 @@ ulv build [-h] [--config FILE] [--input-format INPUT_FORMAT] [--input-dir INPUT_
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--testbeds-file` | string |  | testbed decomposition file (TOML, or JSON with a .json suffix) with top-level 'factors' and 'map' — the same shape as the [testbeds] config table, which it overrides |
-| `--allow-unmapped` | flag |  | include testbeds missing from the [testbeds] mapping with 'unknown' factor values instead of failing |
+| `--allow-unmapped` | flag | `false` | include testbeds missing from the [testbeds] mapping with 'unknown' factor values instead of failing |
 
 ### Bencher API
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--bencher-url` | string |  | Bencher server URL for the bencher-api input (default: https://api.bencher.dev) |
+| `--bencher-url` | string | `https://api.bencher.dev` | Bencher server URL for the bencher-api input (default: https://api.bencher.dev) |
 | `--bencher-project` | string |  | Bencher project slug or UUID for the bencher-api input |
 | `--bencher-token` | string |  | Bencher API token; prefer the BENCHER_API_TOKEN env var — a flag value lands in shell history |
 

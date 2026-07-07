@@ -7,9 +7,14 @@ file suitable for inclusion in the user documentation.
 
 import argparse
 from collections.abc import Iterator
+from dataclasses import fields
 from pathlib import Path
 
 from ulv.cli import build_parser
+from ulv.config import Settings
+
+# Map argparse dest names to Settings field defaults
+_SETTINGS_DEFAULTS = {f.name: f.default for f in fields(Settings)}
 
 
 def _format_option_row(action: argparse.Action) -> str:
@@ -33,17 +38,21 @@ def _format_option_row(action: argparse.Action) -> str:
     else:
         type_str = "string"
 
-    # Determine default
-    if action.default is None:
+    # Determine default - use Settings defaults when argparse default is None
+    effective_default = action.default
+    if effective_default is None and action.dest in _SETTINGS_DEFAULTS:
+        effective_default = _SETTINGS_DEFAULTS[action.dest]
+
+    if effective_default is None:
         default_str = ""
     elif action.default is argparse.SUPPRESS:
         default_str = ""
-    elif isinstance(action.default, bool):
-        default_str = f"`{str(action.default).lower()}`"
-    elif action.default == "":
-        default_str = '`""`'
+    elif isinstance(effective_default, bool):
+        default_str = f"`{str(effective_default).lower()}`"
+    elif effective_default == "":
+        default_str = ""
     else:
-        default_str = f"`{action.default}`"
+        default_str = f"`{effective_default}`"
 
     # Clean up help text
     help_text = action.help or ""
