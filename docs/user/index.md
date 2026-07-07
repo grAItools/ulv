@@ -22,3 +22,4 @@ machines.
 ## Reference
 
 - [CLI Reference](cli-reference.md) — Complete command and option reference
+- [API Reference](api/index.md) — Python API for programmatic use

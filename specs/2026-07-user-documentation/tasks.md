@@ -68,3 +68,65 @@
 - [x] Review all pages for consistent style per `docs/style.md`
 - [x] Verify no broken internal links
 - [x] Final `make verify` pass
+
+## Phase 9 — Add Zensical as dev dependency
+
+- [x] Add `zensical` to the `dev` dependency group in `pyproject.toml`
+- [x] Run `uv sync` to verify the dependency resolves
+- [x] Verify Zensical CLI is available in the dev environment
+
+## Phase 10 — Zensical configuration
+
+- [x] Research Zensical configuration format from installed package
+- [x] Create Zensical configuration file with source/output directories
+- [x] Configure site title and navigation structure
+- [x] Add output directory to `.gitignore`
+- [x] Run Zensical build and verify site generation
+
+## Phase 11 — Auto-generated CLI reference
+
+- [x] Research Zensical argparse introspection mechanism
+- [x] Configure Zensical to extract CLI docs from `ulv.cli:build_parser`
+- [x] Configure output location for generated CLI reference
+- [x] Preserve hand-written prose sections (examples, env vars, see-also)
+- [x] Remove or archive hand-written `cli-reference.md` if replaced
+- [x] Verify generated reference includes all commands, options, types, defaults
+
+## Phase 12 — Auto-generated API reference
+
+- [x] Research Zensical API documentation mechanism
+- [x] Configure Zensical to document `ulv.model` public classes
+- [x] Configure Zensical to document `ulv.config` public classes/functions
+- [x] Configure Zensical to document `ulv.errors` public classes
+- [x] Configure Zensical to document `ulv.testbeds` public classes/functions
+- [x] Configure Zensical to document `ulv.plugins` protocols and registries
+- [x] Exclude internal/private members from documentation
+- [x] Verify generated reference includes docstrings and type hints
+
+## Phase 13 — Makefile integration
+
+- [x] Add `make docs` target with `uv run zensical build`
+- [x] Add help comment for `make docs`
+- [x] Add `make docs-serve` target with `uv run zensical serve`
+- [x] Add help comment for `make docs-serve`
+- [x] Add both targets to `.PHONY` declaration
+- [x] Verify `make help` shows new targets
+
+## Phase 14 — Staleness checks in verify
+
+- [x] Research Zensical staleness checking mechanism
+- [x] Add `make docs-check` target for staleness validation
+- [x] Add help comment for `make docs-check`
+- [x] Integrate `docs-check` into `scripts/verify.sh`
+- [x] Verify staleness check fails when source changes without rebuild
+
+## Phase 15 — Final integration and cleanup
+
+- [x] Run full `make verify` with all checks
+- [x] Build complete documentation site with `make docs`
+- [x] Manual review: navigation works correctly
+- [x] Manual review: CLI reference is complete and accurate
+- [x] Manual review: API reference documents all public modules
+- [x] Manual review: cross-links between pages work
+- [x] Update `docs/user/index.md` with API reference links if needed
+- [x] Confirm all spec criteria 8-15 satisfied

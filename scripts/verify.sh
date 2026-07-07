@@ -32,6 +32,7 @@ run() {
 
 run "lint" uv run ruff check .
 run "test" uv run pytest -q
+run "docs" uv run python scripts/check_docs_staleness.py
 
 if [ "$failed" -ne 0 ]; then
   printf "\nverify: one or more checks failed.\n"

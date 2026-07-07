@@ -1,4 +1,4 @@
-.PHONY: help test test-all lint fmt verify dev clean
+.PHONY: help test test-all lint fmt verify dev clean docs docs-serve docs-check
 
 help:  ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
@@ -24,3 +24,13 @@ dev:  ## Run the local dev workflow (override per-project)
 
 clean:  ## Remove generated artefacts (override per-project)
 	@echo "clean: override this target to remove build/ dist/ etc."
+
+docs:  ## Build user documentation
+	uv run python scripts/gen_cli_reference.py
+	uv run zensical build
+
+docs-serve:  ## Serve documentation locally for preview
+	uv run zensical serve
+
+docs-check:  ## Check if documentation is up to date
+	uv run python scripts/check_docs_staleness.py
