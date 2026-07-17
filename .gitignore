@@ -15,6 +15,7 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+.nimbalyst/
 
 # >>> ai-agent-harness (managed by copier) >>>
 # Personal overrides — never commit
