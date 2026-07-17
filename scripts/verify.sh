@@ -31,6 +31,7 @@ run() {
 }
 
 run "lint" uv run ruff check .
+run "fmt-check" uv run ruff format --check .
 run "test" uv run pytest -q
 run "docs" uv run python scripts/check_docs_staleness.py
 run "docs-build" uv run zensical build

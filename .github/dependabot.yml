@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Keep the pinned action versions in .github/workflows/ current. The
+  # runtime is zero-dependency and dev deps are managed by uv (which
+  # Dependabot does not support), so no pip/uv ecosystem entry here.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"

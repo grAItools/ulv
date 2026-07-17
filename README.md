@@ -1,5 +1,7 @@
 # Unladen Velocity
 
+[![CI](https://github.com/grAItools/ulv/actions/workflows/ci.yml/badge.svg)](https://github.com/grAItools/ulv/actions/workflows/ci.yml)
+
 a Python tool for web-based visualization of performance benchmarks
 
 ## Quickstart
@@ -10,6 +12,14 @@ make lint    # static checks
 make fmt     # auto-format
 make verify  # full gate; what the agent runs before claiming done
 ```
+
+## Continuous integration
+
+Every pull request and push to `main` runs the same gate across Python
+3.12–3.14 on GitHub Actions, and PR titles are checked against
+[Conventional Commits](docs/style.md). Tagging `vX.Y.Z` builds the artifacts
+and cuts a GitHub Release. See [ADR 0007](docs/adr/0007-github-actions-ci.md)
+for the design and the release runbook.
 
 ## AI coding agents
 

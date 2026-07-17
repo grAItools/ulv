@@ -1,0 +1,39 @@
+name: PR Title
+
+# PRs are squash-merged and the PR title becomes the commit header, so it
+# must be a valid Conventional Commits message (docs/style.md).
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  conventional-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        # The title is passed through the environment and read by Python via
+        # os.environ — it is never interpolated into the shell, so a title
+        # containing shell metacharacters cannot execute anything.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+
+          TYPES = "feat|fix|docs|refactor|test|chore|build|ci|perf|style|revert"
+          pattern = rf"^({TYPES})(\([^)]+\))?!?: .+"
+          title = os.environ["PR_TITLE"]
+
+          if re.match(pattern, title):
+              print(f"OK: {title!r}")
+              sys.exit(0)
+
+          print(f"::error::PR title is not a valid Conventional Commits header: {title!r}")
+          print("Expected e.g. 'feat: add X', 'fix(cli): handle Y', 'ci!: drop Z'.")
+          print(f"Allowed types: {TYPES.replace('|', ', ')}.")
+          print("See docs/style.md (Conventional Commits 1.0.0).")
+          sys.exit(1)
+          PY

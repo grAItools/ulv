@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: read-only token; no job here writes to the repo.
+permissions:
+  contents: read
+
+# Supersede in-flight runs for the same ref (e.g. new push to a PR).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pin uv for reproducibility, mirroring the committed uv.lock.
+  # Dependabot does not manage this; bump intentionally.
+  UV_VERSION: "0.11.6"
+
+jobs:
+  # Lint, format, and docs run once on a single Python — no need to build
+  # the docs site three times across the test matrix.
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          python-version: "3.12"
+      - run: uv sync --locked
+      - run: make lint
+      - run: make fmt-check
+      - run: make docs-check
+      - run: make docs-build
+
+  # Tests fan out across every supported Python. python-version pins each
+  # cell to a distinct interpreter (setup-uv exports UV_PYTHON), so the
+  # matrix genuinely exercises three versions.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up uv (Python ${{ matrix.python }})
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - run: make test
+
+  # Lint the workflow files themselves.
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
