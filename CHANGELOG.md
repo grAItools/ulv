@@ -6,6 +6,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-07-17
+
 ### Added
 
 - `ulv build` generates a self-contained static benchmark dashboard
@@ -38,3 +40,9 @@ All notable changes to this project are documented here, following
 - Plugin architecture: third-party input formats and output generators
   register via `ulv.input_formats`/`ulv.output_generators` entry
   points or `register()` calls, without modifying shipped code.
+- User documentation under `docs/user/`: quickstart, a guide per input
+  format, config and testbed guides, and a CLI reference generated from
+  the parser (`make docs`; `make verify` fails if it drifts).
+
+[Unreleased]: https://github.com/grAItools/ulv/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/grAItools/ulv/releases/tag/v0.1.0
