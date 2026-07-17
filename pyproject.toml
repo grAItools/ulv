@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Static site generator for visualizing performance benchmark results"
 readme = "README.md"
 license = "BSD-3-Clause"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = []
 
 [project.scripts]
@@ -26,7 +26,7 @@ build-backend = "uv_build"
 module-name = "ulv"
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 88
 # Vendored upstream checkout, local data, and the vendored ASV frontend
 # (incl. minified third-party JS) are not ours to lint or format.

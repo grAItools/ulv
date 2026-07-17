@@ -1,0 +1,135 @@
+name: Release
+
+# Tag-driven releases. workflow_dispatch is a dry run: it exercises
+# guard + build + smoke without creating a GitHub Release or publishing.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to dry-run (defaults to pyproject version)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.11.6"
+
+jobs:
+  # Refuse to release unless the tag, pyproject version, and CHANGELOG
+  # section agree — so a v0.2.0 tag can't ship a 0.1.0 wheel or empty notes.
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - name: Resolve and verify version
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          PROJECT_VERSION="$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          if [ "$EVENT_NAME" = "push" ]; then
+            TAG_VERSION="${REF_NAME#v}"
+            if [ "$TAG_VERSION" != "$PROJECT_VERSION" ]; then
+              echo "::error::tag $REF_NAME (=$TAG_VERSION) does not match pyproject version $PROJECT_VERSION"
+              exit 1
+            fi
+            VERSION="$TAG_VERSION"
+          else
+            VERSION="${INPUT_VERSION:-$PROJECT_VERSION}"
+          fi
+          # Fails loudly if CHANGELOG has no matching section.
+          uv run python scripts/release_notes.py "$VERSION" > /dev/null
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved release version: $VERSION"
+
+  build:
+    needs: guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - run: uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+          if-no-files-found: error
+
+  # Install the built wheel into a clean venv and run the console script,
+  # proving the artifact (entry point + shipped static tree) works.
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install wheel and run ulv --version
+        # --only-binary forces installing the built wheel; without it pip could
+        # fall back to building the sdist, so the wheel artifact goes untested.
+        run: |
+          python -m venv /tmp/venv
+          /tmp/venv/bin/pip install --no-index --find-links dist --only-binary=:all: unladen-velocity
+          /tmp/venv/bin/ulv --version
+
+  github-release:
+    needs: [guard, build, smoke]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Generate release notes
+        env:
+          VERSION: ${{ needs.guard.outputs.version }}
+        run: uv run python scripts/release_notes.py "$VERSION" > release-notes.md
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --title "$TAG" --notes-file release-notes.md dist/*
+
+  # Scaffolded and inert: publishes only when the repository variable
+  # PYPI_PUBLISH is set to 'true'. Uses OIDC trusted publishing — no secret.
+  # Note: this job's permissions REPLACE the top-level default; it needs
+  # only id-token, not contents.
+  pypi-publish:
+    needs: [guard, build, smoke]
+    if: github.event_name == 'push' && vars.PYPI_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

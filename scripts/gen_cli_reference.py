@@ -20,7 +20,11 @@ _SETTINGS_DEFAULTS = {f.name: f.default for f in fields(Settings)}
 def _format_option_row(action: argparse.Action) -> str:
     """Format a single option as a markdown table row."""
     # Build option string from option_strings
-    opts = ", ".join(f"`{o}`" for o in action.option_strings) if action.option_strings else ""
+    opts = (
+        ", ".join(f"`{o}`" for o in action.option_strings)
+        if action.option_strings
+        else ""
+    )
 
     # Handle positional arguments
     if not action.option_strings:
@@ -58,7 +62,9 @@ def _format_option_row(action: argparse.Action) -> str:
     help_text = action.help or ""
     # Replace %(prog)s and %(default)s placeholders
     help_text = help_text.replace("%(prog)s", "ulv")
-    help_text = help_text.replace("%(default)s", str(action.default) if action.default is not None else "")
+    help_text = help_text.replace(
+        "%(default)s", str(action.default) if action.default is not None else ""
+    )
 
     return f"| {opts} | {type_str} | {default_str} | {help_text} |"
 
@@ -123,7 +129,9 @@ def generate_cli_reference() -> str:
                 opt = action.option_strings[-1]
                 if action.metavar:
                     usage_parts.append(f"[{opt} {action.metavar}]")
-                elif isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
+                elif isinstance(
+                    action, (argparse._StoreTrueAction, argparse._StoreFalseAction)
+                ):
                     usage_parts.append(f"[{opt}]")
                 else:
                     usage_parts.append(f"[{opt} {action.dest.upper()}]")
@@ -161,7 +169,14 @@ def generate_cli_reference() -> str:
                     branding.append(opt)
                 elif dest in ("repo", "branches"):
                     git_enrichment.append(opt)
-                elif dest in ("manifest", "filename_pattern", "commit", "date", "branch", "testbed"):
+                elif dest in (
+                    "manifest",
+                    "filename_pattern",
+                    "commit",
+                    "date",
+                    "branch",
+                    "testbed",
+                ):
                     bmf_metadata.append(opt)
                 elif dest in ("testbeds_file", "allow_unmapped"):
                     testbed_decomp.append(opt)
@@ -217,7 +232,9 @@ def generate_cli_reference() -> str:
     lines.append("")
     lines.append("| Variable | Description |")
     lines.append("|----------|-------------|")
-    lines.append("| `BENCHER_API_TOKEN` | Bencher API token (preferred over `--bencher-token`) |")
+    lines.append(
+        "| `BENCHER_API_TOKEN` | Bencher API token (preferred over `--bencher-token`) |"
+    )
     lines.append("")
 
     # Examples section
@@ -232,13 +249,15 @@ def generate_cli_reference() -> str:
     lines.append("Build from BMF with manifest:")
     lines.append("")
     lines.append("```bash")
-    lines.append("uv run ulv build -i bmf --input-dir results -o site --manifest manifest.json")
+    lines.append(
+        "uv run ulv build -i bmf --input-dir results -o site --manifest manifest.json"
+    )
     lines.append("```")
     lines.append("")
     lines.append("Build from Bencher cloud:")
     lines.append("")
     lines.append("```bash")
-    lines.append("export BENCHER_API_TOKEN=\"your-token\"")
+    lines.append('export BENCHER_API_TOKEN="your-token"')
     lines.append("uv run ulv build -i bencher-api --bencher-project my-project -o site")
     lines.append("```")
     lines.append("")

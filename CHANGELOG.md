@@ -6,6 +6,20 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- Continuous integration on GitHub Actions: every pull request and push to
+  `main` is gated by lint, format-check, tests (Python 3.12–3.14), and the
+  docs build; PR titles are validated against Conventional Commits; tagging
+  `vX.Y.Z` builds artifacts, smoke-tests the wheel, and cuts a GitHub Release
+  (PyPI publishing scaffolded but disabled). See ADR 0007.
+
+### Changed
+
+- Minimum supported Python is now 3.12 (dropped 3.11), matching the CI matrix.
+- `make verify` now also runs `ruff format --check`, so formatting is enforced
+  by the local gate as well as CI.
+
 ## [0.1.0] — 2026-07-17
 
 ### Added

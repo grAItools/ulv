@@ -1,4 +1,4 @@
-.PHONY: help test test-all lint fmt verify dev clean docs docs-serve docs-check
+.PHONY: help test test-all lint fmt fmt-check verify dev clean docs docs-build docs-serve docs-check
 
 help:  ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
@@ -16,6 +16,9 @@ lint:  ## Run static checks (does not auto-fix)
 fmt:  ## Auto-format the codebase
 	uv run ruff format .
 
+fmt-check:  ## Check formatting without modifying files (CI-safe)
+	uv run ruff format --check .
+
 verify:  ## What the agent runs before claiming done
 	@./scripts/verify.sh
 
@@ -27,6 +30,9 @@ clean:  ## Remove generated artefacts (override per-project)
 
 docs:  ## Build user documentation
 	uv run python scripts/gen_cli_reference.py
+	uv run zensical build
+
+docs-build:  ## Build the docs site without regenerating references (CI-safe)
 	uv run zensical build
 
 docs-serve:  ## Serve documentation locally for preview
