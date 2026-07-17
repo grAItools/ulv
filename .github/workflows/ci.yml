@@ -58,12 +58,13 @@ jobs:
       - run: uv sync --locked
       - run: make test
 
-  # Lint the workflow files themselves.
+  # Lint the workflow files themselves. Pinned image (not a curl|bash of an
+  # unpinned install script) so the tool is reviewable and Dependabot-managed.
   actionlint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Run actionlint
-        run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-          ./actionlint -color
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color

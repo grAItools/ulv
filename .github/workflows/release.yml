@@ -84,9 +84,11 @@ jobs:
           name: dist
           path: dist
       - name: Install wheel and run ulv --version
+        # --only-binary forces installing the built wheel; without it pip could
+        # fall back to building the sdist, so the wheel artifact goes untested.
         run: |
           python -m venv /tmp/venv
-          /tmp/venv/bin/pip install --no-index --find-links dist unladen-velocity
+          /tmp/venv/bin/pip install --no-index --find-links dist --only-binary=:all: unladen-velocity
           /tmp/venv/bin/ulv --version
 
   github-release:

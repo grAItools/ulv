@@ -118,10 +118,11 @@ action-version maintenance.
 **Steps.**
 1. `.github/workflows/release.yml`, `on:` both `push: tags: ['v*.*.*']` and
    `workflow_dispatch:` (the dry-run path the tests below use). Top-level
-   `permissions: contents: write`; the PyPI job additionally sets
-   `id-token: write` — note that GitHub *replaces* rather than merges a job's
-   `permissions`, so the PyPI job must also restate any `contents` scope it
-   needs (it needs none). Jobs:
+   `permissions: contents: read`; only the `github-release` job elevates to
+   `contents: write`, and only `pypi-publish` sets `id-token: write` — note
+   GitHub *replaces* rather than merges a job's `permissions`, so each elevated
+   job restates just the scope it needs (github-release: contents; pypi:
+   id-token). Jobs:
    - `guard` (runs first): assert the pushed tag, `pyproject.toml`'s `version`,
      and the `CHANGELOG.md` section header all agree; fail loudly on any
      mismatch so a `v0.2.0` tag can't ship a `0.1.0` wheel or an empty release
