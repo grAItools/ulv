@@ -5,7 +5,8 @@
 //
 // Keys: view, benchmark, log, x, zoom; parameter-axis selections as
 // repeated "p-<axis>" keys; benchmark-param selections as repeated
-// "b-<position>" keys holding value indices.
+// "b-<position>" keys holding value indices; legend-hidden series as
+// repeated "hide" keys holding permutation indices.
 
 const AXIS_PREFIX = "p-";
 const BENCH_PARAM_PREFIX = "b-";
@@ -21,6 +22,7 @@ export function readState() {
     log: params.get("log") === "1",
     x: params.get("x") === "even" ? "even" : "date",
     zoom: null,
+    hidden: params.getAll("hide").map(Number).filter(Number.isInteger),
     axes: {},
     benchParams: {},
   };
@@ -66,6 +68,9 @@ export function encodeState(state) {
     for (const index of indices) {
       params.append(BENCH_PARAM_PREFIX + position, String(index));
     }
+  }
+  for (const index of state.hidden || []) {
+    params.append("hide", String(index));
   }
   if (state.log) {
     params.set("log", "1");

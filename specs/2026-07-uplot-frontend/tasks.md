@@ -66,14 +66,14 @@ Mirror of `plan.md`. Tick as you go; every phase ends with
 
 ## Phase 4 — Overview ranger, series toggling, touch plugin
 
-- [ ] `js/views/overview.js`: mini plot, drag-select zoom, zoom in hash
-- [ ] Legend with per-series show/hide, state in hash
-- [ ] `js/touch.js`: pinch-zoom/pan plugin (uPlot hooks); provenance
+- [x] `js/views/overview.js`: mini plot, drag-select zoom, zoom in hash
+- [x] Legend with per-series show/hide, state in hash
+- [x] `js/touch.js`: pinch-zoom/pan plugin (uPlot hooks); provenance
       line in `html_uplot/VENDORED.md`
-- [ ] Static tests: modules crawled, budget green, `touch.js`
+- [x] Static tests: modules crawled, budget green, `touch.js`
       referenced, no absolute URLs
 - [ ] Manual: drag-zoom, legend toggling, pinch/pan via touch emulation
-- [ ] `make verify` green
+- [x] `make verify` green
 
 ## Phase 5 — Grid and list views
 

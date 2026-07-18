@@ -8,6 +8,10 @@ pinned release and re-verifying hashes from two independent sources.
 
 Everything under `static/` outside `static/vendor/` is authored by this
 project (BSD-3-Clause, like the rest of ulv) and is not vendored.
+One provenance note: `static/js/touch.js` (pinch-zoom/pan via uPlot's
+plugin hooks) is self-authored but derived from the `zoom-touch` demo
+shipped in the pinned uPlot release (`demos/zoom-touch.html`, MIT, same
+upstream and license as above).
 
 ## uPlot 1.6.32
 
