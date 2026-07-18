@@ -139,6 +139,14 @@ class TestStaticTree:
             assert "`graphs/" not in text, path
         assert "graph_paths" in (_static_root() / "js" / "data.js").read_text()
 
+    def test_graph_view_wires_overview_and_touch(self):
+        # The ranger and the touch plugin only work if the graph view
+        # actually mounts them; reachability via the module crawl alone
+        # would also pass for dead imports elsewhere.
+        text = (_static_root() / "js" / "views" / "graph.js").read_text()
+        assert "./overview.js" in text
+        assert "../touch.js" in text
+
     def test_index_html_is_mobile_ready_app_shell(self):
         page = (_static_root() / "index.html").read_text()
         assert re.search(r"<meta\s+name=\"viewport\"", page)

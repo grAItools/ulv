@@ -155,6 +155,19 @@ body {
   min-width: 0;
 }
 
+.overview-wrap {
+  margin-top: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* Horizontal touch gestures belong to the chart (pan/pinch handled by
+ * js/touch.js); vertical swipes keep scrolling the page. */
+.chart-wrap .u-over,
+.overview-wrap .u-over {
+  touch-action: pan-y;
+}
+
 .chart-tip {
   position: absolute;
   z-index: 10;

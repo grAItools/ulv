@@ -6,6 +6,8 @@
 
 import { fetchGraph, graphUrl } from "../data.js";
 import { NONE, writeState } from "../state.js";
+import { touchPlugin } from "../touch.js";
+import { renderOverview } from "./overview.js";
 
 const PALETTE = [
   "#1a5fb4",
@@ -19,6 +21,7 @@ const PALETTE = [
 ];
 
 let currentChart = null;
+let currentOverview = null;
 let currentWrap = null;
 
 window.addEventListener(
@@ -295,6 +298,10 @@ export async function renderGraphView(container, index, state) {
     currentChart.destroy();
     currentChart = null;
   }
+  if (currentOverview) {
+    currentOverview.destroy();
+    currentOverview = null;
+  }
 
   const benchmark = index.benchmarks[state.benchmark];
   if (!benchmark) {
@@ -338,6 +345,7 @@ export async function renderGraphView(container, index, state) {
       ? revs.map((rev) => (index.revision_to_date[rev] ?? rev * 1000) / 1000)
       : revs.map((_, i) => i);
 
+  const hidden = new Set(state.hidden || []);
   const data = [xs];
   const seriesDefs = [{}];
   entryIndices.forEach((entryIdx, gi) => {
@@ -357,6 +365,7 @@ export async function renderGraphView(container, index, state) {
         stroke: PALETTE[(seriesDefs.length - 1) % PALETTE.length],
         width: 1.5,
         points: { show: true, size: 5 },
+        show: !hidden.has(seriesDefs.length - 1),
       });
     }
   });
@@ -369,6 +378,28 @@ export async function renderGraphView(container, index, state) {
   const shortHash = (i) => {
     const hash = index.revision_to_hash[revs[i]] || "";
     return hash.slice(0, index.hash_length);
+  };
+
+  // Every zoom source — main-chart drag, overview drag, touch
+  // gestures — persists through the hash; rendering re-applies it via
+  // setScale, so nothing ever calls setSelect on the main chart
+  // programmatically (which could suppress a click-through).
+  const round = (value) => Math.round(value * 1000) / 1000;
+  const persistZoom = (min, max) =>
+    writeState({
+      ...state,
+      axes: selections,
+      zoom: { min: round(min), max: round(max) },
+    });
+
+  const persistHidden = (u) => {
+    const hiddenNow = [];
+    u.series.forEach((series, i) => {
+      if (i > 0 && series.show === false) {
+        hiddenNow.push(i - 1);
+      }
+    });
+    writeState({ ...state, axes: selections, hidden: hiddenNow });
   };
 
   const opts = {
@@ -392,7 +423,34 @@ export async function renderGraphView(container, index, state) {
       { label: units || null },
     ],
     series: seriesDefs,
-    plugins: [tooltipPlugin(index, revs, units)],
+    plugins: [
+      tooltipPlugin(index, revs, units),
+      touchPlugin({ onRange: persistZoom }),
+    ],
+    hooks: {
+      // fires with the still-visible selection during a user drag-zoom
+      // (uPlot then applies the zoom locally; the re-render from the
+      // hash lands on the same range)
+      setSelect: [
+        (u) => {
+          if (u.select.width > 0) {
+            persistZoom(
+              u.posToVal(u.select.left, "x"),
+              u.posToVal(u.select.left + u.select.width, "x"),
+            );
+          }
+        },
+      ],
+      // legend clicks toggle series.show; focus-only changes carry no
+      // "show" key and are ignored
+      setSeries: [
+        (u, seriesIdx, changed) => {
+          if (seriesIdx != null && changed && "show" in changed) {
+            persistHidden(u);
+          }
+        },
+      ],
+    },
   };
 
   currentChart = new uPlot(opts, data, chartWrap);
@@ -400,4 +458,19 @@ export async function renderGraphView(container, index, state) {
   if (state.zoom) {
     currentChart.setScale("x", { min: state.zoom.min, max: state.zoom.max });
   }
+  // uPlot's dblclick resets its scales locally; clearing the hash keeps
+  // the URL as the single source of truth
+  currentChart.over.addEventListener("dblclick", () => {
+    if (state.zoom) {
+      writeState({ ...state, axes: selections, zoom: null });
+    }
+  });
+
+  currentOverview = renderOverview(container, {
+    data,
+    series: seriesDefs.slice(1),
+    time: state.x === "date",
+    zoom: state.zoom,
+    onZoom: persistZoom,
+  });
 }
