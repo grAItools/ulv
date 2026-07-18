@@ -18,35 +18,35 @@ Mirror of `plan.md`. Tick as you go; every phase ends with
 
 ## Phase 2 — `html-uplot` generator skeleton
 
-- [ ] Author ADR 0008: uPlot frontend supersedes ADR 0003's "reuse
+- [x] Author ADR 0008: uPlot frontend supersedes ADR 0003's "reuse
       ASV UI"; vendoring policy carried forward; ECharts fallback
 - [x] Extract `src/ulv/outputs/common.py` (atomic swap, graph build,
       summarylist, index data, snapshot rows); `HtmlOutputGenerator`
       delegates; existing tests pass unchanged
-- [ ] Vendor uPlot 1.6.x (`uPlot.iife.min.js`, `uPlot.min.css`) with
+- [x] Vendor uPlot 1.6.x (`uPlot.iife.min.js`, `uPlot.min.css`) with
       sha256 verified from two sources; write `html_uplot/VENDORED.md`
       and `LICENSES/uplot.txt`
-- [ ] `HtmlUplotOutputGenerator` (`name = "html-uplot"`) in
+- [x] `HtmlUplotOutputGenerator` (`name = "html-uplot"`) in
       `src/ulv/outputs/html_uplot/generator.py`: static copy, shared
       data emission, own snapshot page; register as built-in
-- [ ] Static skeleton: `index.html` (viewport meta), `app.css`
+- [x] Static skeleton: `index.html` (viewport meta), `app.css`
       (responsive shell), `js/main.js` fetching `info.json`/`index.json`
       and rendering the nav tree
-- [ ] CLI/config: `--generator` flag + `output_generator` key
+- [x] CLI/config: `--generator` flag + `output_generator` key
       (default `html`); unknown generator → `UlvError` listing names
-- [ ] Tests: payload budget < 100,000 bytes; uPlot sha256 pinned; no
+- [x] Tests: payload budget < 100,000 bytes; uPlot sha256 pinned; no
       absolute URLs anywhere in the new static tree (JS included);
       static-suffix check; snapshot page (values, bounds
       empty-not-zero, local CSS); atomic-swap tests on new generator;
       default build still vendored frontend
-- [ ] E2e: crawl `html-uplot` ASV + BMF sites from a subdirectory,
+- [x] E2e: crawl `html-uplot` ASV + BMF sites from a subdirectory,
       following module scripts and static imports; manifest dirs and
       all graph files return 200
-- [ ] Wheel test: static tree, vendor files, `VENDORED.md`,
+- [x] Wheel test: static tree, vendor files, `VENDORED.md`,
       `LICENSES/uplot.txt` ship; site builds from installed wheel
-- [ ] Config/CLI precedence tests for `--generator`
+- [x] Config/CLI precedence tests for `--generator`
 - [ ] Manual smoke: served site shows nav tree
-- [ ] `make verify` green
+- [x] `make verify` green
 
 ## Phase 3 — Graph view core
 

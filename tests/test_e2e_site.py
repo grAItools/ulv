@@ -11,83 +11,19 @@ import urllib.request
 from pathlib import Path
 
 import pytest
-
-from ulv.cli import main
-
-ASV_FIXTURE = Path(__file__).parent / "fixtures" / "asv_results"
+from conftest import build_asv_site, build_bmf_site, build_opaque_bmf_site
 
 _RESOURCE_REF = re.compile(
     r"<(?:script|link|img)\b[^>]*?(?:src|href)\s*=\s*\"([^\"]+)\"", re.IGNORECASE
 )
 
+# A script tag carrying type="module" in either attribute order; its
+# static imports are followed transitively by _crawl_js_modules.
+_MODULE_SCRIPT = re.compile(
+    r"<script\b(?=[^>]*type=\"module\")[^>]*src=\"([^\"]+)\"", re.IGNORECASE
+)
 
-def _build_asv_site(tmp_path: Path) -> Path:
-    out_dir = tmp_path / "asv-site"
-    assert (
-        main(
-            [
-                "build",
-                "-i",
-                "asv",
-                "--input-dir",
-                str(ASV_FIXTURE),
-                "-o",
-                str(out_dir),
-                "--project",
-                "demo",
-            ]
-        )
-        == 0
-    )
-    return out_dir
-
-
-def _build_bmf_site(tmp_path: Path) -> Path:
-    data = tmp_path / "bmf-data"
-    data.mkdir()
-    manifest = {}
-    for commit, date, testbed, value in [
-        ("c1" * 4, "2026-01-01T00:00:00Z", "linux-x64", 1.0),
-        ("c2" * 4, "2026-02-01T00:00:00Z", "linux-x64", 2.0),
-        ("c1" * 4, "2026-01-01T00:00:00Z", "macos-arm", 10.0),
-        ("c2" * 4, "2026-02-01T00:00:00Z", "macos-arm", 20.0),
-    ]:
-        name = f"{testbed}-{commit[:2]}.json"
-        # a Bencher-style '::' name sanitizes differently on disk, so a
-        # frontend fetching raw benchmark names cannot pass by luck
-        (data / name).write_text(
-            json.dumps({"adapter::json": {"latency": {"value": value}}})
-        )
-        manifest[name] = {"commit": commit, "date": date, "testbed": testbed}
-    (data / "manifest.json").write_text(json.dumps(manifest))
-    beds = tmp_path / "beds.toml"
-    beds.write_text(
-        'factors = ["os", "arch"]\n'
-        '[map.linux-x64]\nos = "linux"\narch = "x64"\n'
-        '[map.macos-arm]\nos = "macos"\narch = "arm64"\n'
-    )
-    out_dir = tmp_path / "bmf-site"
-    assert (
-        main(
-            [
-                "build",
-                "-i",
-                "bmf",
-                "--input-dir",
-                str(data),
-                "--manifest",
-                str(data / "manifest.json"),
-                "--testbeds-file",
-                str(beds),
-                "-o",
-                str(out_dir),
-                "--project",
-                "bmfdemo",
-            ]
-        )
-        == 0
-    )
-    return out_dir
+_STATIC_IMPORT = re.compile(r"import[^;]*?[\"'](\.{1,2}/[^\"']+)[\"']")
 
 
 def _crawl(site: Path) -> None:
@@ -123,11 +59,34 @@ def _crawl(site: Path) -> None:
         for graph in site.glob("graphs/**/*.json"):
             rel = urllib.parse.quote(graph.relative_to(site).as_posix())
             assert urllib.request.urlopen(base + rel).status == 200, graph
-        _crawl_grid_summaries(site, base)
+        _crawl_js_modules(base, _MODULE_SCRIPT.findall(html))
+        if (site / "index.json").is_file():
+            manifest = json.loads((site / "index.json").read_text())["graph_paths"]
+            for directory in [*manifest["dirs"], manifest["summary_dir"]]:
+                url = base + urllib.parse.quote(directory) + "/"
+                assert urllib.request.urlopen(url).status == 200, directory
+        if (site / "summarygrid.js").is_file():
+            _crawl_grid_summaries(site, base)
     finally:
         server.shutdown()
         thread.join()
         server.server_close()
+
+
+def _crawl_js_modules(base: str, refs: list[str]) -> None:
+    """Fetch every module script and, transitively, every relative
+    static-import specifier inside it, so no shipped ES module can be
+    missing or unreferenced by a broken path."""
+    pending = [urllib.parse.urljoin(base, ref) for ref in refs]
+    seen = set()
+    while pending:
+        url = pending.pop()
+        if url in seen:
+            continue
+        seen.add(url)
+        body = urllib.request.urlopen(url).read().decode()
+        for spec in _STATIC_IMPORT.findall(body):
+            pending.append(urllib.parse.urljoin(url, spec))
 
 
 # The characters encodeURIComponent leaves unescaped, so the quoted
@@ -193,36 +152,10 @@ def _frontend_graph_selection(site: Path) -> list:
     return selected
 
 
-def _build_opaque_bmf_site(tmp_path):
-    """Same BMF data, no testbed decomposition: single opaque axis."""
-    _build_bmf_site(tmp_path)
-    data = tmp_path / "bmf-data"
-    out_dir = tmp_path / "bmf-opaque-site"
-    assert (
-        main(
-            [
-                "build",
-                "-i",
-                "bmf",
-                "--input-dir",
-                str(data),
-                "--manifest",
-                str(data / "manifest.json"),
-                "-o",
-                str(out_dir),
-                "--project",
-                "bmfdemo",
-            ]
-        )
-        == 0
-    )
-    return out_dir
-
-
 class TestMachinelessGraphDisplay:
     @pytest.mark.parametrize(
         "builder",
-        [_build_bmf_site, _build_opaque_bmf_site, _build_asv_site],
+        [build_bmf_site, build_opaque_bmf_site, build_asv_site],
         ids=["bmf-decomposed", "bmf-opaque", "asv"],
     )
     def test_default_state_enumerates_graphs(self, builder, tmp_path):
@@ -232,18 +165,19 @@ class TestMachinelessGraphDisplay:
         )
 
     def test_machine_guard_shipped_in_frontend(self, tmp_path):
-        site = _build_bmf_site(tmp_path)
+        site = build_bmf_site(tmp_path)
         assert _MACHINE_GUARD in (site / "graphdisplay.js").read_text()
         assert _MACHINE_GUARD in (site / "summarylist.js").read_text()
 
 
-@pytest.mark.parametrize("builder", [_build_asv_site, _build_bmf_site])
-def test_full_site_crawls_cleanly_from_subdirectory(builder, tmp_path):
-    _crawl(builder(tmp_path))
+@pytest.mark.parametrize("generator", [None, "html-uplot"], ids=["html", "html-uplot"])
+@pytest.mark.parametrize("builder", [build_asv_site, build_bmf_site])
+def test_full_site_crawls_cleanly_from_subdirectory(builder, generator, tmp_path):
+    _crawl(builder(tmp_path, generator=generator))
 
 
 def test_bmf_site_has_decomposed_axes(tmp_path):
-    site = _build_bmf_site(tmp_path)
+    site = build_bmf_site(tmp_path)
     index = json.loads((site / "index.json").read_text())
     assert index["params"]["os"] == ["linux", "macos"]
     assert "testbed" not in index["params"]

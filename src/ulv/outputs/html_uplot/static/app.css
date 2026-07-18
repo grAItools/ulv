@@ -1,0 +1,124 @@
+/* App shell for the html-uplot frontend: framework-free, responsive.
+ * Two-pane layout (nav | content) that collapses to a single column on
+ * narrow viewports so nothing needs horizontal page scrolling. */
+
+:root {
+  --border: #d0d4da;
+  --muted: #667;
+  --accent: #1a5fb4;
+  --bg-alt: #f5f6f8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color: #1c1e22;
+}
+
+.site-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.site-header a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) 1fr;
+  min-height: calc(100vh - 3rem);
+}
+
+#bench-nav {
+  border-right: 1px solid var(--border);
+  padding: 0.5rem;
+  overflow-y: auto;
+  background: var(--bg-alt);
+}
+
+#bench-nav ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0.9rem;
+}
+
+#bench-nav > ul {
+  padding-left: 0;
+}
+
+#bench-nav li {
+  margin: 0.1rem 0;
+  overflow-wrap: anywhere;
+}
+
+#bench-nav .group > span {
+  font-weight: 600;
+  cursor: default;
+}
+
+#bench-nav a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+#bench-nav a:hover {
+  text-decoration: underline;
+}
+
+.content {
+  padding: 1rem;
+  min-width: 0;
+}
+
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+}
+
+.data-table tbody tr:nth-child(odd) {
+  background: var(--bg-alt);
+}
+
+/* Snapshot page has no nav pane; center its lone content column. */
+.snapshot .content {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 40rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  #bench-nav {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 40vh;
+  }
+}

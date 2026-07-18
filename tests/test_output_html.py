@@ -195,9 +195,9 @@ class TestGraphPathsManifest:
         # cannot pass by luck. Every emitted graph file must be
         # addressable via manifest lookups — dir × benchmark stem, plus
         # each dir's summary-rows file.
-        from test_e2e_site import _build_bmf_site
+        from conftest import build_bmf_site
 
-        site = _build_bmf_site(tmp_path)
+        site = build_bmf_site(tmp_path)
         index = json.loads((site / "index.json").read_text())
         manifest = index["graph_paths"]
         assert any(name != stem for name, stem in manifest["benchmarks"].items())
@@ -615,6 +615,7 @@ class TestPackaging:
         # only a real wheel build proves the files ship.
         import shutil
         import subprocess
+        import sys
         import zipfile
 
         uv = shutil.which("uv")
@@ -635,5 +636,31 @@ class TestPackaging:
             "ulv/outputs/html/static/vendor/fonts/glyphicons-halflings-regular.woff",
             "ulv/outputs/html/LICENSES/asv.txt",
             "ulv/outputs/html/VENDORED.md",
+            "ulv/outputs/html_uplot/static/index.html",
+            "ulv/outputs/html_uplot/static/vendor/uPlot.iife.min.js",
+            "ulv/outputs/html_uplot/static/vendor/uPlot.min.css",
+            "ulv/outputs/html_uplot/LICENSES/uplot.txt",
+            "ulv/outputs/html_uplot/VENDORED.md",
         ]:
             assert required in names, required
+
+        # Build a site from the packaged artifact: a wheel install is an
+        # unzip into site-packages, so running from the extracted tree
+        # proves the shipped assets are complete and loadable.
+        installed = tmp_path / "installed"
+        zipfile.ZipFile(wheel).extractall(installed)
+        out_dir = tmp_path / "wheel-site"
+        code = (
+            "from ulv.cli import main\n"
+            "raise SystemExit(main(['build', '-i', 'asv', '--input-dir', "
+            f"{str(FIXTURE)!r}, '-o', {str(out_dir)!r}, "
+            "'--generator', 'html-uplot']))\n"
+        )
+        subprocess.run(
+            [sys.executable, "-c", code],
+            env={"PYTHONPATH": str(installed), "PATH": "/usr/bin:/bin"},
+            check=True,
+            capture_output=True,
+        )
+        assert (out_dir / "index.html").is_file()
+        assert (out_dir / "vendor" / "uPlot.iife.min.js").is_file()
