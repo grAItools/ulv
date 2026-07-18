@@ -23,7 +23,9 @@ _MODULE_SCRIPT = re.compile(
     r"<script\b(?=[^>]*type=\"module\")[^>]*src=\"([^\"]+)\"", re.IGNORECASE
 )
 
-_STATIC_IMPORT = re.compile(r"import[^;]*?[\"'](\.{1,2}/[^\"']+)[\"']")
+# `import … from "./x.js"`, bare `import "./x.js"`, and re-exports
+# (`export … from "./x.js"`) all bring in a module statically.
+_STATIC_IMPORT = re.compile(r"\b(?:import|export)\b[^;]*?[\"'](\.{1,2}/[^\"']+)[\"']")
 
 
 def _crawl(site: Path) -> None:
@@ -59,7 +61,12 @@ def _crawl(site: Path) -> None:
         for graph in site.glob("graphs/**/*.json"):
             rel = urllib.parse.quote(graph.relative_to(site).as_posix())
             assert urllib.request.urlopen(base + rel).status == 200, graph
-        _crawl_js_modules(base, _MODULE_SCRIPT.findall(html))
+        crawled = _crawl_js_modules(base, _MODULE_SCRIPT.findall(html))
+        # every shipped app module must be reachable from the entry
+        # point — an orphaned module is a bug, not just payload
+        shipped = {p.relative_to(site).as_posix() for p in site.glob("js/**/*.js")}
+        crawled_rel = {urllib.parse.unquote(url[len(base) :]) for url in crawled}
+        assert shipped <= crawled_rel, shipped - crawled_rel
         if (site / "index.json").is_file():
             manifest = json.loads((site / "index.json").read_text())["graph_paths"]
             for directory in [*manifest["dirs"], manifest["summary_dir"]]:
@@ -73,12 +80,12 @@ def _crawl(site: Path) -> None:
         server.server_close()
 
 
-def _crawl_js_modules(base: str, refs: list[str]) -> None:
+def _crawl_js_modules(base: str, refs: list[str]) -> set[str]:
     """Fetch every module script and, transitively, every relative
-    static-import specifier inside it, so no shipped ES module can be
-    missing or unreferenced by a broken path."""
+    static-import specifier inside it; returns the crawled URLs so the
+    caller can prove the set covers everything shipped."""
     pending = [urllib.parse.urljoin(base, ref) for ref in refs]
-    seen = set()
+    seen: set[str] = set()
     while pending:
         url = pending.pop()
         if url in seen:
@@ -87,6 +94,7 @@ def _crawl_js_modules(base: str, refs: list[str]) -> None:
         body = urllib.request.urlopen(url).read().decode()
         for spec in _STATIC_IMPORT.findall(body):
             pending.append(urllib.parse.urljoin(url, spec))
+    return seen
 
 
 # The characters encodeURIComponent leaves unescaped, so the quoted

@@ -50,19 +50,19 @@ Mirror of `plan.md`. Tick as you go; every phase ends with
 
 ## Phase 3 — Graph view core
 
-- [ ] `js/data.js`: manifest-only graph fetches (encodeURIComponent
+- [x] `js/data.js`: manifest-only graph fetches (encodeURIComponent
       per segment); missing file → "no data", not an error
-- [ ] `js/state.js`: hash codec (view, benchmark, params, log, x-axis,
+- [x] `js/state.js`: hash codec (view, benchmark, params, log, x-axis,
       zoom); every UI mutation writes the hash
-- [ ] `js/views/graph.js`: generic selector panels from
+- [x] `js/views/graph.js`: generic selector panels from
       `index.params` (`null` as `[none]`); benchmark-param
       sub-selection; uPlot series per permutation; units in y-axis
       label; log toggle; date/even-spacing toggle; tooltip with value
       + units + short hash; point click → commit URL
-- [ ] Static test: app-shell JS contains no `machine` token
-- [ ] Crawl covers new modules; budget still green
+- [x] Static test: app-shell JS contains no `machine` token
+- [x] Crawl covers new modules; budget still green
 - [ ] Manual: graphs render and behave on ASV and BMF fixture sites
-- [ ] `make verify` green
+- [x] `make verify` green
 
 ## Phase 4 — Overview ranger, series toggling, touch plugin
 

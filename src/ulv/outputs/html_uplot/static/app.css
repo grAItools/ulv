@@ -105,6 +105,69 @@ body {
   background: var(--bg-alt);
 }
 
+/* Graph view: selector panels, chart, hover tooltip. */
+
+.bench-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.axis-group {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin: 0;
+  padding: 0.25rem 0.5rem 0.45rem;
+}
+
+.axis-group legend {
+  color: var(--muted);
+  font-size: 0.75rem;
+  padding: 0 0.25rem;
+}
+
+.sel {
+  font: inherit;
+  font-size: 0.85rem;
+  margin: 0 0.15rem 0.15rem 0;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.sel.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.chart-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.chart-tip {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
 /* Snapshot page has no nav pane; center its lone content column. */
 .snapshot .content {
   max-width: 60rem;
