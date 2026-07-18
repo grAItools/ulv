@@ -159,6 +159,64 @@ class TestIndexJson:
         assert index["project"] == "demo"
 
 
+class TestGraphPathsManifest:
+    """The additive `graph_paths` key maps every graph data file to an
+    explicit on-disk path (dir + "/" + stem + ".json"), so a frontend
+    never has to recompute sanitized paths client-side."""
+
+    def test_dirs_parallel_to_graph_param_list(self, index):
+        from ulv.outputs.html.paths import graph_path
+
+        manifest = index["graph_paths"]
+        assert len(manifest["dirs"]) == len(index["graph_param_list"])
+        for entry, directory in zip(index["graph_param_list"], manifest["dirs"]):
+            assert directory == graph_path(entry, "x").rsplit("/", 1)[0]
+
+    def test_dirs_exist_on_disk(self, site, index):
+        for directory in index["graph_paths"]["dirs"]:
+            assert (site / directory).is_dir(), directory
+
+    def test_benchmark_stems_are_sanitized_names(self, index, dataset):
+        from ulv.outputs.html.paths import sanitize_filename
+
+        stems = index["graph_paths"]["benchmarks"]
+        assert set(stems) == set(dataset.benchmarks)
+        for name, stem in stems.items():
+            assert stem == sanitize_filename(name)
+
+    def test_summary_dir_has_file_per_stem(self, site, index):
+        manifest = index["graph_paths"]
+        for stem in manifest["benchmarks"].values():
+            assert (site / manifest["summary_dir"] / f"{stem}.json").is_file(), stem
+
+    def test_bmf_graph_files_all_reachable_through_manifest(self, tmp_path):
+        # Machine-less BMF site with Bencher-style '::' names: the names
+        # sanitize differently on disk, so a frontend fetching raw names
+        # cannot pass by luck. Every emitted graph file must be
+        # addressable via manifest lookups — dir × benchmark stem, plus
+        # each dir's summary-rows file.
+        from test_e2e_site import _build_bmf_site
+
+        site = _build_bmf_site(tmp_path)
+        index = json.loads((site / "index.json").read_text())
+        manifest = index["graph_paths"]
+        assert any(name != stem for name, stem in manifest["benchmarks"].items())
+
+        stems = manifest["benchmarks"].values()
+        reachable = {
+            f"{directory}/{stem}.json"
+            for directory in [*manifest["dirs"], manifest["summary_dir"]]
+            for stem in stems
+        }
+        reachable |= {f"{directory}/summary.json" for directory in manifest["dirs"]}
+        emitted = {
+            path.relative_to(site).as_posix()
+            for path in (site / "graphs").rglob("*.json")
+        }
+        assert emitted
+        assert emitted <= reachable
+
+
 class TestInfoJson:
     def test_info_json_shape(self, site):
         info = json.loads((site / "info.json").read_text())
