@@ -30,7 +30,7 @@ from ulv.outputs.html.graphs import (
     is_na,
     make_summary_graph,
 )
-from ulv.outputs.html.paths import graph_path
+from ulv.outputs.html.paths import graph_path, sanitize_filename
 
 _PAGES = [
     # [name, button_label, description] per asv's OutputPublisher
@@ -314,6 +314,25 @@ class HtmlOutputGenerator:
 
         graph_param_list = graph_set.param_list()
 
+        # Additive path manifest: any graph file is dir + "/" + stem +
+        # ".json", so a frontend never recomputes sanitized paths
+        # client-side. `dirs` is a parallel array rather than a key
+        # inside each graph_param_list entry because the vendored
+        # frontend's graph_to_path iterates entry keys to build paths.
+        # Deriving dirs and stems from graph_path/sanitize_filename —
+        # the same functions that place the files — keeps the manifest
+        # and the on-disk layout from drifting apart.
+        def graph_dir(params: dict) -> str:
+            return graph_path(params, "x").rsplit("/", 1)[0]
+
+        graph_paths = {
+            "dirs": [graph_dir(entry) for entry in graph_param_list],
+            "summary_dir": graph_dir({"summary": ""}),
+            "benchmarks": {
+                name: sanitize_filename(name) for name in dataset.benchmarks
+            },
+        }
+
         benchmarks = {}
         for name, benchmark in dataset.benchmarks.items():
             entry = dict(benchmark.extra)
@@ -349,6 +368,7 @@ class HtmlOutputGenerator:
             "revision_to_date": revision_to_date,
             "params": params,
             "graph_param_list": graph_param_list,
+            "graph_paths": graph_paths,
             "benchmarks": benchmarks,
             "machines": machines,
             "tags": tags,
