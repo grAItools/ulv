@@ -247,7 +247,13 @@ function controlsPanel(index, benchmark, state, selections, perAxis) {
       group.append(
         selectorButton(label, active, () => {
           const next = toggleValue(selections[axis], value);
-          writeState({ ...state, axes: { ...selections, [axis]: next } });
+          // hidden-series indices are positional over the selected
+          // permutations, so any selection change invalidates them
+          writeState({
+            ...state,
+            axes: { ...selections, [axis]: next },
+            hidden: [],
+          });
         }),
       );
     }
@@ -269,7 +275,8 @@ function controlsPanel(index, benchmark, state, selections, perAxis) {
           nextParams.forEach((chosen, i) => {
             benchParams[i] = chosen;
           });
-          writeState({ ...state, axes: selections, benchParams });
+          // positional hidden indices do not survive a combo change
+          writeState({ ...state, axes: selections, benchParams, hidden: [] });
         }),
       );
     });
