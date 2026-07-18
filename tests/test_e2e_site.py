@@ -189,3 +189,35 @@ def test_bmf_site_has_decomposed_axes(tmp_path):
     index = json.loads((site / "index.json").read_text())
     assert index["params"]["os"] == ["linux", "macos"]
     assert "testbed" not in index["params"]
+
+
+def test_bmf_manifest_thumbnails_reachable_on_uplot_site(tmp_path):
+    # The grid view derives every thumbnail URL from the manifest
+    # (summary_dir + stem); Bencher-style '::' names sanitize
+    # differently on disk, so this is the patch-6 bug class of the
+    # vendored frontend, now closed by manifest-driven fetching.
+    site = build_bmf_site(tmp_path, generator="html-uplot")
+    manifest = json.loads((site / "index.json").read_text())["graph_paths"]
+    assert any(name != stem for name, stem in manifest["benchmarks"].items())
+
+    server = http.server.ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        lambda *args: http.server.SimpleHTTPRequestHandler(
+            *args, directory=str(site.parent)
+        ),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        base = f"http://127.0.0.1:{server.server_address[1]}/{site.name}/"
+        for stem in manifest["benchmarks"].values():
+            path = f"{manifest['summary_dir']}/{stem}.json"
+            url = base + "/".join(
+                urllib.parse.quote(seg, safe=_ENCODE_URI_COMPONENT_SAFE)
+                for seg in path.split("/")
+            )
+            assert urllib.request.urlopen(url).status == 200, stem
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()

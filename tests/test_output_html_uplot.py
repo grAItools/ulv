@@ -147,6 +147,24 @@ class TestStaticTree:
         assert "./overview.js" in text
         assert "../touch.js" in text
 
+    def test_main_wires_grid_and_list_views(self):
+        text = (_static_root() / "js" / "main.js").read_text()
+        assert "./views/grid.js" in text
+        assert "./views/list.js" in text
+
+    def test_dead_columns_absent_from_shipped_app_code(self):
+        # Spec Decision 5: ulv always emits null for the step-detection
+        # columns, so the list view drops them instead of shipping dead
+        # UI — the strings must not appear anywhere we author.
+        for path in _static_root().rglob("*"):
+            if not path.is_file() or path.suffix not in {".html", ".css", ".js"}:
+                continue
+            if path.is_relative_to(_static_root() / "vendor"):
+                continue
+            text = path.read_text()
+            assert "Recent change" not in text, path
+            assert "Changed at" not in text, path
+
     def test_index_html_is_mobile_ready_app_shell(self):
         page = (_static_root() / "index.html").read_text()
         assert re.search(r"<meta\s+name=\"viewport\"", page)
