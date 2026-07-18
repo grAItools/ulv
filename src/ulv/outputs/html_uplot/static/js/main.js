@@ -6,7 +6,7 @@
 import { renderNav } from "./nav.js";
 import { readState, writeState } from "./state.js";
 import { renderGraphView } from "./views/graph.js";
-import { renderGridView } from "./views/grid.js";
+import { destroyThumbnails, renderGridView } from "./views/grid.js";
 import { renderListView } from "./views/list.js";
 
 let siteIndex = null;
@@ -36,6 +36,11 @@ async function render() {
   }
   for (const link of document.querySelectorAll("#view-nav a")) {
     link.classList.toggle("active", link.dataset.view === active);
+  }
+  if (active !== "grid") {
+    // zero residue on view switch: thumbnail charts are only retained
+    // until destroyed (window-listener + registry inside uPlot)
+    destroyThumbnails();
   }
   if (active === "list") {
     await renderListView(main, siteIndex, state);
