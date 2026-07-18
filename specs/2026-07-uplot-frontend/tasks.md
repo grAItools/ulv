@@ -20,7 +20,7 @@ Mirror of `plan.md`. Tick as you go; every phase ends with
 
 - [ ] Author ADR 0008: uPlot frontend supersedes ADR 0003's "reuse
       ASV UI"; vendoring policy carried forward; ECharts fallback
-- [ ] Extract `src/ulv/outputs/common.py` (atomic swap, graph build,
+- [x] Extract `src/ulv/outputs/common.py` (atomic swap, graph build,
       summarylist, index data, snapshot rows); `HtmlOutputGenerator`
       delegates; existing tests pass unchanged
 - [ ] Vendor uPlot 1.6.x (`uPlot.iife.min.js`, `uPlot.min.css`) with
