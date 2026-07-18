@@ -15,6 +15,7 @@ FILE_VALUES = {
     "input_format": "asv",
     "input_dir": "results",
     "output_dir": "site",
+    "output_generator": "file-gen",
     "project": "fileproj",
     "project_url": "https://example.org/file",
     "show_commit_url": "https://example.org/commit/",
@@ -24,6 +25,7 @@ FLAG_VALUES = {
     "input_format": "flag-asv",
     "input_dir": "flag-results",
     "output_dir": "flag-site",
+    "output_generator": "flag-gen",
     "project": "flagproj",
     "project_url": "https://example.org/flag",
     "show_commit_url": "https://example.org/flag-commit/",
@@ -47,6 +49,7 @@ class TestDefaults:
         settings = load_settings(None, {})
         assert settings == Settings()
         assert settings.input_format is None
+        assert settings.output_generator == "html"
         assert settings.project == ""
         assert settings.project_url == "#"
         assert settings.show_commit_url == ""
@@ -169,6 +172,19 @@ class TestCliIntegration:
         index = json.loads((tmp_path / "site" / "index.json").read_text())
         assert index["project_url"] == "https://example.org/proj"
         assert index["show_commit_url"] == "https://example.org/commit/"
+
+    def test_config_output_generator_selects_frontend(self, tmp_path):
+        config = self._config(tmp_path, output_generator="html-uplot")
+        rc = main(["build", "--config", str(config)])
+        assert rc == 0
+        assert (tmp_path / "site" / "vendor" / "uPlot.iife.min.js").is_file()
+        assert not (tmp_path / "site" / "asv.js").exists()
+
+    def test_generator_flag_overrides_config_value(self, tmp_path):
+        config = self._config(tmp_path, output_generator="html-uplot")
+        rc = main(["build", "--config", str(config), "--generator", "html"])
+        assert rc == 0
+        assert (tmp_path / "site" / "asv.js").is_file()
 
     def test_malformed_config_exits_nonzero_naming_file(self, tmp_path, capsys):
         config = tmp_path / "ulv.toml"

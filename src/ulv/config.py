@@ -30,6 +30,9 @@ class Settings:
     input_format: str | None = None
     input_dir: str | None = None
     output_dir: str | None = None
+    # Output generator plugin name; the vendored ASV frontend stays the
+    # default until the uPlot frontend reaches parity (spec Decision 7).
+    output_generator: str = "html"
     project: str = ""
     project_url: str = "#"
     show_commit_url: str = ""

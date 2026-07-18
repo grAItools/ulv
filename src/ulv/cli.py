@@ -57,6 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="directory to write the generated site to",
     )
     build.add_argument(
+        "--generator",
+        help="output generator name (default: html, the vendored ASV "
+        "frontend; 'html-uplot' selects the uPlot frontend)",
+    )
+    build.add_argument(
         "--project",
         help="project name shown in the generated site",
     )
@@ -176,6 +181,7 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "input_format": args.input_format,
             "input_dir": args.input_dir,
             "output_dir": args.output_dir,
+            "output_generator": args.generator,
             "project": args.project,
             "project_url": args.project_url,
             "show_commit_url": args.show_commit_url,
@@ -232,7 +238,7 @@ def _cmd_build(args: argparse.Namespace) -> int:
             "bencher_token": settings.bencher_token,
         },
     )
-    generator = plugins.output_generators.get("html")
+    generator = plugins.output_generators.get(settings.output_generator)
     generator.generate(
         dataset,
         Path(settings.output_dir),

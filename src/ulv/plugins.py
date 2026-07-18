@@ -99,11 +99,13 @@ def _register_builtins() -> None:
     from ulv.inputs.bencher_api import BencherApiInputFormat
     from ulv.inputs.bmf import BmfInputFormat
     from ulv.outputs.html.generator import HtmlOutputGenerator
+    from ulv.outputs.html_uplot.generator import HtmlUplotOutputGenerator
 
     input_formats.register(AsvInputFormat())
     input_formats.register(BencherApiInputFormat())
     input_formats.register(BmfInputFormat())
     output_generators.register(HtmlOutputGenerator())
+    output_generators.register(HtmlUplotOutputGenerator())
 
 
 _register_builtins()
