@@ -42,6 +42,58 @@ body {
   font-size: 0.85rem;
 }
 
+#view-nav a {
+  color: var(--accent);
+  text-decoration: none;
+  margin-right: 0.6rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+}
+
+#view-nav a.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Grid view: responsive card grid, thumbnails lazy-rendered. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.6rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: var(--accent);
+}
+
+.card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.card .thumb {
+  min-height: 60px;
+}
+
+/* List view: sortable headers. */
+.list-table th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.list-table tbody tr {
+  cursor: pointer;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(14rem, 20rem) 1fr;

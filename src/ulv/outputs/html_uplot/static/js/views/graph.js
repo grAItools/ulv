@@ -77,7 +77,7 @@ export function axisSelections(index, state) {
   return selections;
 }
 
-function selectedEntryIndices(index, selections) {
+export function selectedEntryIndices(index, selections) {
   const chosen = [];
   index.graph_param_list.forEach((entry, i) => {
     const matches = Object.entries(selections).every(([axis, values]) =>

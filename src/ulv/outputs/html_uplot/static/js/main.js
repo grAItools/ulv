@@ -6,6 +6,8 @@
 import { renderNav } from "./nav.js";
 import { readState, writeState } from "./state.js";
 import { renderGraphView } from "./views/graph.js";
+import { renderGridView } from "./views/grid.js";
+import { renderListView } from "./views/list.js";
 
 let siteIndex = null;
 
@@ -27,12 +29,21 @@ function showMessage(text) {
 
 async function render() {
   const state = readState();
-  if (!state.benchmark) {
-    const total = Object.keys(siteIndex.benchmarks).length;
-    showMessage(`${total} benchmarks — select one to view its history`);
-    return;
+  const main = document.querySelector("#main-pane");
+  let active = state.view;
+  if (active === "graph" && !state.benchmark) {
+    active = "grid"; // the landing page, like the vendored frontend
   }
-  await renderGraphView(document.querySelector("#main-pane"), siteIndex, state);
+  for (const link of document.querySelectorAll("#view-nav a")) {
+    link.classList.toggle("active", link.dataset.view === active);
+  }
+  if (active === "list") {
+    await renderListView(main, siteIndex, state);
+  } else if (active === "grid") {
+    renderGridView(main, siteIndex, state);
+  } else {
+    await renderGraphView(main, siteIndex, state);
+  }
 }
 
 async function boot() {
@@ -59,8 +70,21 @@ async function boot() {
     // switching benchmark keeps axis/display choices but drops the
     // benchmark-param selections and hidden-series indices, which are
     // per-benchmark (hidden indices are positional over permutations)
-    writeState({ ...readState(), benchmark: name, benchParams: {}, hidden: [] });
+    writeState({
+      ...readState(),
+      view: "graph",
+      benchmark: name,
+      benchParams: {},
+      hidden: [],
+    });
   });
+
+  for (const link of document.querySelectorAll("#view-nav a")) {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      writeState({ ...readState(), view: link.dataset.view });
+    });
+  }
 
   window.addEventListener("hashchange", () => {
     render().catch((error) => showMessage(`Render failed: ${error.message}`));

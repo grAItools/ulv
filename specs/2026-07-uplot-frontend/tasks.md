@@ -77,16 +77,16 @@ Mirror of `plan.md`. Tick as you go; every phase ends with
 
 ## Phase 5 — Grid and list views
 
-- [ ] `js/views/grid.js`: lazy thumbnails (IntersectionObserver) from
+- [x] `js/views/grid.js`: lazy thumbnails (IntersectionObserver) from
       `summary_dir` + stem; card click → graph view
-- [ ] `js/views/list.js`: summary rows via manifest; name/value
+- [x] `js/views/list.js`: summary rows via manifest; name/value
       (+ units)/error columns; self-authored sort; no dead columns
-- [ ] Static test: no "Recent change" / "Changed at" in shipped app
+- [x] Static test: no "Recent change" / "Changed at" in shipped app
       code; crawl + budget green
-- [ ] E2e: every manifest-derived thumbnail URL returns 200 on the
+- [x] E2e: every manifest-derived thumbnail URL returns 200 on the
       BMF (`::`-named) site
 - [ ] Manual: thumbnails lazy-load, sorting works, units visible
-- [ ] `make verify` green
+- [x] `make verify` green
 
 ## Phase 6 — Docs, vendoring polish, parity checklist
 
