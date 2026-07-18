@@ -7,10 +7,30 @@ import { fetchGraph, summaryUrl } from "../data.js";
 import { writeState } from "../state.js";
 
 let observer = null;
+// Every uPlot instance registers a window "dppxchange" listener (and
+// an internal instance-registry entry) that only destroy() removes, so
+// an un-destroyed thumbnail is retained forever — canvas, data and DOM
+// subtree — and re-renders on browser zoom/monitor changes. Track each
+// batch and destroy it before the next render or on view switch.
+let thumbCharts = [];
+
+export function destroyThumbnails() {
+  if (observer) {
+    observer.disconnect();
+    observer = null;
+  }
+  for (const chart of thumbCharts) {
+    chart.destroy();
+  }
+  thumbCharts = [];
+}
 
 function drawThumbnail(card, index, name) {
   fetchGraph(summaryUrl(index, name)).then((graph) => {
     const slot = card.querySelector(".thumb");
+    if (!slot.isConnected) {
+      return; // view switched while the summary fetch was in flight
+    }
     const points = (graph || []).filter(([, value]) => value != null);
     if (!points.length) {
       slot.textContent = "no data";
@@ -18,26 +38,26 @@ function drawThumbnail(card, index, name) {
       return;
     }
     const data = [graph.map(([rev]) => rev), graph.map(([, value]) => value)];
-    new uPlot(
-      {
-        width: slot.clientWidth || 220,
-        height: 60,
-        axes: [{ show: false }, { show: false }],
-        legend: { show: false },
-        cursor: { show: false },
-        scales: { x: { time: false } },
-        series: [{}, { stroke: "#1a5fb4", width: 1, points: { show: false } }],
-      },
-      data,
-      slot,
+    thumbCharts.push(
+      new uPlot(
+        {
+          width: slot.clientWidth || 220,
+          height: 60,
+          axes: [{ show: false }, { show: false }],
+          legend: { show: false },
+          cursor: { show: false },
+          scales: { x: { time: false } },
+          series: [{}, { stroke: "#1a5fb4", width: 1, points: { show: false } }],
+        },
+        data,
+        slot,
+      ),
     );
   });
 }
 
 export function renderGridView(container, index, state) {
-  if (observer) {
-    observer.disconnect();
-  }
+  destroyThumbnails();
   observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
