@@ -57,8 +57,9 @@ async function boot() {
   const names = Object.keys(index.benchmarks).sort();
   renderNav(document.querySelector("#bench-nav"), names, (name) => {
     // switching benchmark keeps axis/display choices but drops the
-    // benchmark-param selections, which are per-benchmark
-    writeState({ ...readState(), benchmark: name, benchParams: {} });
+    // benchmark-param selections and hidden-series indices, which are
+    // per-benchmark (hidden indices are positional over permutations)
+    writeState({ ...readState(), benchmark: name, benchParams: {}, hidden: [] });
   });
 
   window.addEventListener("hashchange", () => {

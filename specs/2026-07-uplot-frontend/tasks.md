@@ -105,7 +105,12 @@ Mirror of `plan.md`. Tick as you go; every phase ends with
 - [ ] Hover tooltip; units shown on the Bencher-units fixture
 - [ ] Commit click-through honors URL template + hash length
 - [ ] Overview drag-zoom; legend series toggling
+- [ ] Legend toggle → axis/benchmark change → no series unexpectedly
+      hidden (hidden indices are positional; must reset on selection
+      change)
 - [ ] Pinch-zoom/pan (devtools touch emulation or device)
+- [ ] Touch: 2→1 finger transition mid-gesture doesn't jump (if it
+      does: re-anchor on touchend while touches remain — non-blocking)
 - [ ] Grid lazy thumbnails; list sorting; no dead columns
 - [ ] Hash round-trip for representative states (fresh tab restores)
 - [ ] Phone-width viewport: no horizontal chrome scrolling
