@@ -133,8 +133,10 @@ class TestStaticTree:
         # may assemble a "graphs/..." path from raw benchmark names (the
         # sanitized-path bug class the manifest exists to kill).
         for path in (_static_root() / "js").rglob("*.js"):
-            assert '"graphs/' not in path.read_text(), path
-            assert "'graphs/" not in path.read_text(), path
+            text = path.read_text()
+            assert '"graphs/' not in text, path
+            assert "'graphs/" not in text, path
+            assert "`graphs/" not in text, path
         assert "graph_paths" in (_static_root() / "js" / "data.js").read_text()
 
     def test_index_html_is_mobile_ready_app_shell(self):

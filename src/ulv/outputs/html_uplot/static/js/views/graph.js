@@ -152,14 +152,23 @@ function unitsOf(benchmark) {
 
 function tooltipPlugin(index, revs, units) {
   let tip = null;
+  // uPlot's mouseup applies a drag-zoom and synchronously resets
+  // u.select to zero width before the DOM click event dispatches, so
+  // the click handler cannot inspect u.select. The setSelect hook does
+  // fire with the non-zero selection during that mouseup (the reset
+  // uses _fire=false), so it flags the drag instead.
+  let sawDrag = false;
   return {
     hooks: {
       init(u) {
         tip = el("div", "chart-tip");
         tip.hidden = true;
         u.over.append(tip);
+        u.over.addEventListener("mousedown", () => {
+          sawDrag = false;
+        });
         u.over.addEventListener("click", () => {
-          if (u.select.width > 0) {
+          if (sawDrag) {
             return; // drag-select zoom, not a point click
           }
           const idx = u.cursor.idx;
@@ -171,6 +180,11 @@ function tooltipPlugin(index, revs, units) {
             window.open(index.show_commit_url + hash, "_blank", "noopener");
           }
         });
+      },
+      setSelect(u) {
+        if (u.select.width > 0) {
+          sawDrag = true;
+        }
       },
       setCursor(u) {
         const idx = u.cursor.idx;
