@@ -90,30 +90,83 @@ Mirror of `plan.md`. Tick as you go; every phase ends with
 
 ## Phase 6 — Docs, vendoring polish, parity checklist
 
-- [ ] `docs/architecture.md`: module map (+`common`, +`html_uplot`),
+- [x] `docs/architecture.md`: module map (+`common`, +`html_uplot`),
       `graph_paths` contract, units gap closed, ADR 0008 linked
-- [ ] User docs: `--generator html-uplot` / `output_generator` example;
+- [x] User docs: `--generator html-uplot` / `output_generator` example;
       vendored generator remains default
-- [ ] `CHANGELOG.md`: bullets for new generator + manifest
-- [ ] Final `html_uplot/VENDORED.md` + `LICENSES/` review
-- [ ] `make verify` green
+- [x] `CHANGELOG.md`: bullets for new generator + manifest
+- [x] Final `html_uplot/VENDORED.md` + `LICENSES/` review (banner
+      v1.6.32 = pin, hashes match, MIT text + copyright present)
+- [x] `make verify` green
 
-### Manual parity checklist (run on ASV fixture site AND a machine-less BMF site, both served from a subdirectory)
+### Manual parity checklist — HUMAN PASS REQUIRED
 
-- [ ] Nav tree; param selectors; benchmark-param sub-selection
-- [ ] Log toggle; date vs. even-spacing toggle
-- [ ] Hover tooltip; units shown on the Bencher-units fixture
-- [ ] Commit click-through honors URL template + hash length
-- [ ] Overview drag-zoom; legend series toggling
+Every unticked item below blocks feature sign-off (plan Phase 6).
+All are browser-interactive and could not be verified by the agent.
+
+**Setup** (from the repo root; both sites deliberately served from a
+subdirectory):
+
+```bash
+uv run ulv build -i asv --input-dir tests/fixtures/asv_results \
+  -o /tmp/ulv-parity/asv-site --project demo \
+  --show-commit-url "https://github.com/airspeed-velocity/asv/commit/" \
+  --generator html-uplot
+uv run ulv build -i bmf --input-dir docs/user/samples/bmf \
+  --manifest docs/user/samples/bmf/manifest.json \
+  -o /tmp/ulv-parity/bmf-site --project bmfdemo --generator html-uplot
+python3 -m http.server 8123 -d /tmp/ulv-parity
+```
+
+Open <http://127.0.0.1:8123/asv-site/> (machine axes) and
+<http://127.0.0.1:8123/bmf-site/> (machine-less). Keep devtools open
+with **"Disable cache" checked** — a cached JS file once masked a fix
+during earlier manual verification. Run every item on BOTH sites
+unless it names one.
+
+- [ ] Nav tree renders grouped benchmarks; clicking a leaf opens its
+      graph. Param selector buttons filter series; on the ASV site,
+      `params_examples.mem_param` shows number/depth sub-selection
+      buttons that add/remove series
+- [ ] Log toggle switches the y scale (spacing changes, no errors);
+      "date"/"even x-axis" buttons switch between date axis and
+      evenly spaced short-hash labels
+- [ ] Hover shows crosshair + tooltip: short (8-char) hash, date, and
+      per-series value with units text (BMF shows the measure slug,
+      e.g. `latency`, via the same `units || unit` path; if a real
+      Bencher project is available, confirm the human-readable units
+      string, e.g. "nanoseconds (ns)")
+- [ ] Clicking a data point (ASV site) opens
+      `https://github.com/airspeed-velocity/asv/commit/<full hash>`;
+      no commit page opens after finishing a drag-zoom on the main
+      chart, and none ever opens from the overview strip
+- [ ] Drag on the main chart zooms; drag on the overview strip zooms
+      the main chart and paints the window on the strip; double-click
+      resets; the `zoom=` hash key appears/disappears accordingly
+- [ ] Legend click hides/shows a series (`hide=` appears in the hash)
 - [ ] Legend toggle → axis/benchmark change → no series unexpectedly
       hidden (hidden indices are positional; must reset on selection
       change)
-- [ ] Pinch-zoom/pan (devtools touch emulation or device)
+- [ ] Pinch-zoom/pan (devtools touch emulation or device): two-finger
+      pinch zooms x around the midpoint, one-finger drag pans,
+      vertical swipe still scrolls the page; the final range lands in
+      the hash on gesture end
 - [ ] Touch: 2→1 finger transition mid-gesture doesn't jump (if it
       does: re-anchor on touchend while touches remain — non-blocking)
-- [ ] Grid lazy thumbnails; list sorting; no dead columns
-- [ ] Hash round-trip for representative states (fresh tab restores)
-- [ ] Phone-width viewport: no horizontal chrome scrolling
-- [ ] Machine-less site: no machine selector; machine site: machine is
-      an ordinary axis
-- [ ] Devtools network tab: only the site's own static files fetched
+- [ ] Grid view (landing page): thumbnails appear as cards scroll
+      into view (throttle network in devtools to see laziness); card
+      click opens the graph view. List view: header clicks sort
+      ascending/descending (numbers numerically, nulls last); columns
+      are exactly Benchmark / Last value / Error — no
+      change-detection columns; values show units text
+- [ ] Hash round-trip: set benchmark + param selection + log + even
+      x + zoom + one hidden series, copy the URL into a fresh tab —
+      identical view restores
+- [ ] Phone-width viewport (devtools, e.g. 375 px): nav collapses
+      above the content, no horizontal scrolling of page chrome,
+      selectors and charts reachable
+- [ ] BMF site: no machine selector anywhere (os/arch or testbed
+      axes only); ASV site: machine appears as an ordinary axis group
+- [ ] Devtools network tab while browsing all three views: only the
+      site's own static files under `/asv-site/` (resp. `/bmf-site/`)
+      are fetched — no external hosts
