@@ -106,16 +106,36 @@ class TestVendoredUplot:
 class TestStaticTree:
     def test_no_absolute_urls_anywhere(self):
         # Stricter than the vendored suite: this frontend is ours end to
-        # end, so JS is scanned too, not just HTML/CSS references.
+        # end, so JS is scanned too, not just HTML/CSS references. Only
+        # hash-pinned files under vendor/ get the license-banner
+        # carve-out; the self-authored tree is scanned raw.
         for path in _static_root().rglob("*"):
             if not path.is_file() or path.suffix not in {".html", ".css", ".js"}:
                 continue
-            text = _LICENSE_BANNER.sub("", path.read_text())
+            text = path.read_text()
+            if path.is_relative_to(_static_root() / "vendor"):
+                text = _LICENSE_BANNER.sub("", text)
             assert not re.search(r"https?://", text), path
             for ref in _resource_refs(text):
                 assert not ref.startswith("//"), (path, ref)
             for url in re.findall(r"url\(['\"]?([^)'\"]+)", text):
                 assert not url.startswith("//"), (path, url)
+
+    def test_app_shell_js_never_mentions_machine(self):
+        # Spec Decision 4: machine is an ordinary parameter axis, so
+        # machine-less datasets work because axes are generic — the app
+        # shell must not special-case (or even mention) the word.
+        for path in (_static_root() / "js").rglob("*.js"):
+            assert "machine" not in path.read_text().lower(), path
+
+    def test_app_shell_js_builds_no_graph_paths_by_hand(self):
+        # Every graph URL comes from the graph_paths manifest; no module
+        # may assemble a "graphs/..." path from raw benchmark names (the
+        # sanitized-path bug class the manifest exists to kill).
+        for path in (_static_root() / "js").rglob("*.js"):
+            assert '"graphs/' not in path.read_text(), path
+            assert "'graphs/" not in path.read_text(), path
+        assert "graph_paths" in (_static_root() / "js" / "data.js").read_text()
 
     def test_index_html_is_mobile_ready_app_shell(self):
         page = (_static_root() / "index.html").read_text()
