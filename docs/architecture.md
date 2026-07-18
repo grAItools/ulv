@@ -9,9 +9,14 @@ plain file server:
 
 ```
 input plugin ──> Dataset (ulv.model) ──> output generator ──> static site
-   (asv, bmf,                              (html: vendored
-    bencher-api)                            ASV frontend)
+   (asv, bmf,                              (html: vendored ASV frontend,
+    bencher-api)                            html-uplot: uPlot frontend)
 ```
+
+Two output generators share one data pipeline (`ulv.outputs.common`):
+the default `html` (vendored ASV frontend) and the selectable
+`html-uplot` (self-authored uPlot frontend, [ADR 0008](adr/0008-vendor-uplot-for-self-authored-frontend.md)),
+chosen with `--generator` / the `output_generator` config key.
 
 Typical invocations:
 
@@ -39,10 +44,13 @@ ulv serve site/ --port 8080
 | `ulv.inputs.asv` | Native ASV results directories (api_version 2), lossless mapping, optional git enrichment |
 | `ulv.inputs.bmf` | Bencher Metric Format files with explicit sidecar metadata (manifest / filename pattern / flags) |
 | `ulv.inputs.bencher_api` | Read-only paginated fetch from a Bencher server ([ADR 0005](adr/0005-stdlib-http-client-with-transport-seam.md)) |
-| `ulv.outputs.html.generator` | Site assembly: graphs, summaries, summarylist, `index.json`/`info.json`, snapshot page, atomic output swap |
+| `ulv.outputs.common` | Shared site-build pipeline for both generators: atomic output swap, graph building, summarylist rows, `index.json`/`info.json` data (including the `graph_paths` manifest), snapshot table extraction |
+| `ulv.outputs.html.generator` | Default `html` generator: vendored static tree + snapshot page over the shared pipeline |
 | `ulv.outputs.html.graphs` | Port of asv's graph data handling (averaging, NA trim, summary geometric means, resampling) minus step detection |
-| `ulv.outputs.html.paths` | Graph file paths, byte-compatible with the frontend's `graph_to_path` |
+| `ulv.outputs.html.paths` | Graph file paths, byte-compatible with the vendored frontend's `graph_to_path`; also the source of the `graph_paths` manifest |
 | `ulv.outputs.html.static/` | Vendored ASV frontend + pinned third-party libraries ([ADR 0003](adr/0003-vendor-asv-frontend-and-third-party-js.md)); patches and hashes in [`VENDORED.md`](../src/ulv/outputs/html/VENDORED.md), attributions in `LICENSES/` |
+| `ulv.outputs.html_uplot.generator` | Selectable `html-uplot` generator: self-authored static tree + snapshot page over the shared pipeline ([ADR 0008](adr/0008-vendor-uplot-for-self-authored-frontend.md)) |
+| `ulv.outputs.html_uplot.static/` | Self-authored app shell (plain ES modules + CSS, <100 KB budget, no `machine` special-casing) + pinned uPlot under `vendor/`; hashes in [`VENDORED.md`](../src/ulv/outputs/html_uplot/VENDORED.md), attribution in `LICENSES/` |
 
 ## Plugin architecture
 
@@ -84,6 +92,36 @@ package can never shadow a built-in ([ADR 0002](adr/0002-plugin-discovery-via-en
   swap in on success; a failed build leaves either no output or the
   previous site intact.
 
+## The `graph_paths` manifest
+
+`index.json` carries one additive top-level key, `graph_paths`, so a
+frontend never recomputes sanitized file paths client-side (the bug
+class behind vendored patch 6):
+
+```json
+"graph_paths": {
+  "dirs": ["graphs/branch-main/machine-cheetah/…", "…"],
+  "summary_dir": "graphs/summary",
+  "benchmarks": {"adapter::json (latency)": "adapter__json (latency)"}
+}
+```
+
+- `dirs` is **parallel to `graph_param_list`** (entry *i*'s files live
+  in `dirs[i]`). It is a separate array — never a key inside the
+  entries — because the vendored `graph_to_path` iterates entry keys.
+- `benchmarks` maps every raw benchmark name to its sanitized file
+  stem (no `.json`).
+- Any graph URL is `dir + "/" + stem + ".json"`; each environment
+  directory also holds its summarylist rows at `dir + "/summary.json"`,
+  and grid thumbnails live at `summary_dir + "/" + stem + ".json"`.
+  Clients apply `encodeURIComponent` per path segment.
+- Both sides derive from the same `ulv.outputs.html.paths` functions,
+  so the manifest and the on-disk layout cannot drift. The addition is
+  purely additive: the vendored frontend ignores unknown index keys.
+
+The `html-uplot` frontend fetches exclusively through this manifest;
+the vendored frontend still recomputes paths (unchanged by design).
+
 ## External dependencies
 
 None at runtime. The stdlib covers TOML/JSON config (`tomllib`,
@@ -114,9 +152,11 @@ attributed per [ADR 0003](adr/0003-vendor-asv-frontend-and-third-party-js.md).
 - **Regression detection** is out of scope for v1 (spec Decision 6):
   summarylist change columns stay null; asv's `step_detect` was
   deliberately not ported.
-- **Bencher measure units**: the human-readable units string rides in
-  `Benchmark.extra["units"]`; the frontend currently displays the
-  measure slug.
+- **Bencher measure units in the vendored frontend**: the
+  human-readable units string rides in `Benchmark.extra["units"]` and
+  the `html-uplot` frontend displays it (y-axis label, tooltip, list
+  view); the vendored frontend still shows the measure slug — closing
+  that would mean another patch against abandoned code.
 
 ## Generated code
 
@@ -132,6 +172,7 @@ lint/format instead.)
   [0002 plugin discovery](adr/0002-plugin-discovery-via-entry-points.md),
   [0003 vendored frontend](adr/0003-vendor-asv-frontend-and-third-party-js.md),
   [0004 argparse + config precedence](adr/0004-argparse-cli-with-config-file-precedence.md),
-  [0005 stdlib HTTP transport](adr/0005-stdlib-http-client-with-transport-seam.md)
+  [0005 stdlib HTTP transport](adr/0005-stdlib-http-client-with-transport-seam.md),
+  [0008 uPlot frontend](adr/0008-vendor-uplot-for-self-authored-frontend.md)
 - Style guide: [`style.md`](style.md)
 - Testing strategy: [`testing.md`](testing.md)

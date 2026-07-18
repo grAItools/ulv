@@ -1,6 +1,6 @@
 # Vendored assets — `html-uplot` frontend
 
-Policy (ADR 0008, carrying ADR 0003's forward): pinned plain files,
+Policy (ADR 0008, carrying ADR 0003's policy forward): pinned plain files,
 recorded sources and integrity hashes, license attribution under
 `LICENSES/`, and **no local patches** — behavior gaps are closed in the
 self-authored app-shell code instead. Update by re-vendoring a newer

@@ -7,11 +7,11 @@ import { fetchGraph, summaryUrl } from "../data.js";
 import { writeState } from "../state.js";
 
 let observer = null;
-// Every uPlot instance registers a window "dppxchange" listener (and
-// an internal instance-registry entry) that only destroy() removes, so
-// an un-destroyed thumbnail is retained forever — canvas, data and DOM
-// subtree — and re-renders on browser zoom/monitor changes. Track each
-// batch and destroy it before the next render or on view switch.
+// Every uPlot instance registers a window "dppxchange" listener that
+// only destroy() removes, so an un-destroyed thumbnail is retained
+// forever — canvas, data and DOM subtree — and re-renders on browser
+// zoom/monitor changes. Track each batch and destroy it before the
+// next render or on view switch.
 let thumbCharts = [];
 
 export function destroyThumbnails() {
