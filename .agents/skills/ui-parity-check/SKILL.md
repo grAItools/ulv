@@ -76,9 +76,13 @@ reported hash confirms which revision a position hits.
    canvas), so use `browser_click` with a11y refs. Click a nav leaf →
    graph renders. On the ASV site open `params_examples.mem_param`:
    number/depth selector groups appear; toggling a value changes the
-   rendered series count (read via `browser_evaluate` on
-   `u.series`/legend rows). Screenshot. Pass: selections filter series
-   with no console errors.
+   rendered series count. No uPlot instance is reachable from page
+   context (the chart handle is module-scoped, not on `window`) —
+   read series state from the legend DOM uPlot renders instead:
+   `browser_evaluate` counting `.chart-wrap .u-legend .u-series` rows
+   (the legend includes one row for the x series, so data series =
+   rows − 1). Screenshot. Pass: selections filter series with no
+   console errors.
 2. **Log toggle; date vs. even x-axis** — `browser_click` the "log
    scale", "date x-axis", "even x-axis" buttons;
    `browser_console_messages` must show no errors; `location.hash`
@@ -111,8 +115,10 @@ reported hash confirms which revision a position hits.
    Screenshot.
 7. **Toggle-then-selection-change reset** — hide a series, then
    change an axis selection (or switch benchmark): `browser_evaluate`
-   that `hide=` is gone from the hash and no series is unexpectedly
-   hidden (`u.series.every(s => s.show !== false)` bar series 0).
+   that `location.hash` no longer contains `hide=` (authoritative —
+   the app writes `hidden: []` on every selection change) AND that no
+   legend row carries the hidden-series class:
+   `document.querySelectorAll('.chart-wrap .u-legend .u-series.u-off').length === 0`.
 8. **Pinch-zoom/pan (synthetic)** — `browser_evaluate` dispatching
    synthetic `TouchEvent`s on `.chart-wrap .u-over`: touchstart with
    two touches, touchmove spreading them (pinch), touchend; then a
