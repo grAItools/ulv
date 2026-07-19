@@ -60,5 +60,9 @@ export function renderOverview(container, { data, series, time, zoom, onZoom }) 
     ],
   };
 
-  return new uPlot(opts, data, wrap);
+  const chart = new uPlot(opts, data, wrap);
+  // setSize() clears the painted zoom window; expose a repaint so the
+  // resize handler can restore it after re-fitting the overview.
+  chart.repaintSelection = () => showSelection(chart);
+  return chart;
 }

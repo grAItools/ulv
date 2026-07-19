@@ -33,6 +33,19 @@ window.addEventListener(
         height: 380,
       });
     }
+    // The overview is a second uPlot; it must re-fit too or it keeps its
+    // old width and overflows the page (e.g. resizing to phone width
+    // while zoomed). Repaint the zoom window setSize clears.
+    if (currentOverview) {
+      const overviewWrap = currentOverview.root.parentElement;
+      if (overviewWrap) {
+        currentOverview.setSize({
+          width: Math.max(overviewWrap.clientWidth, 280),
+          height: 60,
+        });
+        currentOverview.repaintSelection?.();
+      }
+    }
   },
   { passive: true },
 );
@@ -161,6 +174,11 @@ function tooltipPlugin(index, revs, units) {
   // fire with the non-zero selection during that mouseup (the reset
   // uses _fire=false), so it flags the drag instead.
   let sawDrag = false;
+  // A double-click (the zoom-reset gesture) dispatches two click events,
+  // each landing on a focused point; opening the commit URL on click
+  // would then spawn two tabs on every reset. Defer the open so a
+  // trailing dblclick can cancel it.
+  let clickTimer = null;
   return {
     hooks: {
       init(u) {
@@ -179,9 +197,16 @@ function tooltipPlugin(index, revs, units) {
             return;
           }
           const hash = index.revision_to_hash[revs[idx]];
-          if (hash && index.show_commit_url) {
-            window.open(index.show_commit_url + hash, "_blank", "noopener");
+          if (!hash || !index.show_commit_url) {
+            return;
           }
+          clearTimeout(clickTimer);
+          clickTimer = window.setTimeout(() => {
+            window.open(index.show_commit_url + hash, "_blank", "noopener");
+          }, 250);
+        });
+        u.over.addEventListener("dblclick", () => {
+          clearTimeout(clickTimer); // reset gesture: cancel the pending open
         });
       },
       setSelect(u) {
