@@ -17,6 +17,9 @@ Thumbs.db
 .vscode/
 .nimbalyst/
 
+# Parity-check browser artifacts (Playwright MCP output, regenerated per run)
+.playwright-mcp/
+
 # >>> ai-agent-harness (managed by copier) >>>
 # Personal overrides — never commit
 AGENTS.local.md
