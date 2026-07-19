@@ -147,6 +147,37 @@ class TestStaticTree:
         assert "./overview.js" in text
         assert "../touch.js" in text
 
+    def test_grid_view_mounts_thumbnails_lazily(self):
+        # Thumbnails mount only as cards scroll into view; without the
+        # observer a large benchmark set renders every uPlot up front.
+        # The mount-on-scroll behaviour is browser-runtime and is not
+        # exercised by the module crawl or the small fixtures, so guard
+        # the wiring directly.
+        text = (_static_root() / "js" / "views" / "grid.js").read_text()
+        assert "IntersectionObserver" in text
+        assert "rootMargin" in text
+        assert "observer.observe(" in text
+        assert "observer.unobserve(" in text
+        assert "drawThumbnail(" in text
+
+    def test_point_click_commit_open_is_double_click_cancellable(self):
+        # A zoom-reset double-click dispatches two point clicks; opening
+        # the commit URL directly on click spawns two tabs per reset. The
+        # open is deferred and the trailing dblclick cancels it.
+        text = (_static_root() / "js" / "views" / "graph.js").read_text()
+        assert "window.open(" in text
+        assert "setTimeout(" in text
+        assert "clearTimeout(" in text
+        assert 'addEventListener("dblclick"' in text
+
+    def test_resize_refits_overview_not_just_main_chart(self):
+        # The overview is a second uPlot; a resize handler that re-fits
+        # only the main chart leaves the strip at its old width, which
+        # overflows the page on a shrink (e.g. to phone width while
+        # zoomed).
+        text = (_static_root() / "js" / "views" / "graph.js").read_text()
+        assert "currentOverview.setSize(" in text
+
     def test_main_wires_grid_and_list_views(self):
         text = (_static_root() / "js" / "main.js").read_text()
         assert "./views/grid.js" in text
