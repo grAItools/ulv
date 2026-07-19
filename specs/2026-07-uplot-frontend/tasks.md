@@ -104,6 +104,20 @@ Mirror of `plan.md`. Tick as you go; every phase ends with
 Every unticked item below blocks feature sign-off (plan Phase 6).
 All are browser-interactive and could not be verified by the agent.
 
+> **Automated pre-pass:** `ui-parity-check` ran on 2026-07-19 against both
+> fixture sites — see [`parity-report-2026-07-19.md`](parity-report-2026-07-19.md)
+> for per-item evidence. Boxes are left unticked for the human sign-off.
+> Agent verdicts (report order): 1 pass · 2 pass · 3 pass (live-Bencher
+> units string = confirm manually) · 4 pass · 5 pass · 6 pass · 7 pass ·
+> 8 confirm manually (device feel) · 9 confirm manually (device feel) ·
+> 10 list/columns pass, lazy-thumbnail runtime = confirm manually
+> (fixtures ≤4 benchmarks) · 11 pass · 12 pass · 13 pass · 14 pass.
+> Two findings from the run were **fixed** in this branch: the zoom
+> reset-double-click no longer opens commit tabs (`graph.js` click
+> debounce), and the overview strip now re-fits on resize (no phone
+> overflow while zoomed). A third — no fixture large enough to exercise
+> runtime lazy-thumbnail mounting — remains open.
+
 **Setup** (from the repo root; both sites deliberately served from a
 subdirectory):
 
