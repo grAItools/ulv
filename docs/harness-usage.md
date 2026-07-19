@@ -141,6 +141,41 @@ OpenCode reads `.opencode/opencode.jsonc`, which sets:
 | Block destructive bash | `PreToolUse` hook (script)                 | `permission.bash` deny (`*…*` substring globs) |
 | Path-scoped rules      | `.claude/rules/`                         | _(no equivalent)_                          |
 
+## Browser automation (MCP)
+
+The repo configures one MCP server, `playwright`
+([Playwright MCP](https://github.com/microsoft/playwright-mcp), pinned
+to `@playwright/mcp@0.0.78`, [ADR 0009](adr/0009-playwright-mcp-browser-automation.md)),
+so agents can drive a real headless browser — needed for the
+`ui-parity-check` skill, which exercises the `html-uplot` frontend's
+canvas charts (coordinate mouse tools via `--caps=vision`).
+
+- **Claude Code** reads [`.mcp.json`](../.mcp.json) at the repo root
+  and **prompts you to approve** the server the first time a session
+  uses it. Approve it, then the `browser_*` tools appear.
+- **OpenCode** reads the `"mcp"` key in
+  [`.opencode/opencode.jsonc`](../.opencode/opencode.jsonc); the
+  server is enabled there, no separate approval file.
+- **One-time setup:** the first `npx` use downloads the pinned package
+  (network once, then cached), and the browser binary is installed
+  once with `npx playwright install chromium`. Neither ever happens
+  inside `make verify` — the gate has no browser, network, or MCP
+  prerequisite.
+- The two config files are kept in lockstep and version-pinned by
+  `tests/test_harness_config.py`; bump both plus the test constant in
+  one commit.
+- A server only loads in sessions **started after** its config exists,
+  so a fresh session is required the first time.
+
+Invoke the check with "run the UI parity check" (or "frontend
+regression check") after any change under
+`src/ulv/outputs/html_uplot/static/`. The skill
+(`.agents/skills/ui-parity-check/SKILL.md`) builds both fixture sites,
+drives the 14-item parity checklist, and writes a per-item evidence
+report (`specs/<feature>/parity-report-<date>.md`, screenshots in the
+gitignored `parity-evidence/`) with three-way verdicts for the owner's
+sign-off review.
+
 ## Decision guide — which capability for which task
 
 | If you want to…                             | Trigger                   | Backed by         |
