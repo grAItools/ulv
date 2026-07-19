@@ -333,18 +333,26 @@ server root (same host).
 | 13 | Machine axis presence | agent-verified pass |
 | 14 | Network isolation | agent-verified pass |
 
-### Follow-ups surfaced (owner's call)
+### Follow-ups surfaced — all resolved 2026-07-19
 
-1. **Reset double-click opens commit tabs (item 5, commit-URL sites):**
-   each constituent click of the zoom-reset double-click fires
-   click-through on the focused point; on the ASV site this spawns two
-   GitHub tabs. Suggest suppressing click-through for the reset gesture.
-2. **Overview strip doesn't re-fit on resize while zoomed (item 12):**
-   a live desktop→phone resize with an active zoom leaves the overview
-   strip at desktop width, overflowing the page until re-navigation.
-3. **Lazy-grid coverage gap (item 10):** no fixture has enough
-   benchmarks to push a thumbnail beyond the 200px `rootMargin`, so
-   runtime mount-on-scroll is unverified. Consider a larger grid fixture.
+1. **Reset double-click opens commit tabs (item 5, commit-URL sites)** —
+   **fixed.** The point-click commit-open is now debounced (250 ms) and
+   cancelled by the trailing `dblclick`, so a single click still opens
+   exactly one tab while a zoom reset opens none. Re-verified in-browser
+   (`fix-verify-item12-*` evidence set; single click → 1 tab, reset →
+   0 tabs). Static guard: `test_point_click_commit_open_is_double_click_cancellable`.
+2. **Overview strip doesn't re-fit on resize while zoomed (item 12)** —
+   **fixed.** The window resize handler now re-fits the overview strip as
+   well as the main chart and repaints the zoom window. The zoom-then-
+   resize-to-375 repro that previously gave `scrollWidth 943` now gives
+   `375` (no overflow); overview `.u-over` reflows 926 → 341 px. Static
+   guard: `test_resize_refits_overview_not_just_main_chart`.
+3. **Lazy-grid coverage gap (item 10)** — **guarded.** No fixture is
+   large enough to push a thumbnail past the 200 px `rootMargin`, so
+   runtime mount-on-scroll stays a manual check; a static wiring guard
+   (`test_grid_view_mounts_thumbnails_lazily`) now protects the
+   `IntersectionObserver` mechanism against regression. A larger grid
+   fixture remains the way to exercise it in-browser if desired.
 
 Checklist boxes in `tasks.md` are intentionally left unticked — ticking
 is the owner's act at sign-off. Annotate against this report.
