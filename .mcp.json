@@ -6,7 +6,9 @@
         "@playwright/mcp@0.0.78",
         "--headless",
         "--isolated",
-        "--caps=vision"
+        "--caps=vision",
+        "--browser",
+        "chromium"
       ]
     }
   }

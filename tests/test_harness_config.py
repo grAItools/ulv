@@ -16,7 +16,11 @@ REPO_ROOT = Path(__file__).parent.parent
 # means editing both config files and this constant in one commit.
 PINNED_SERVER = "@playwright/mcp@0.0.78"
 
-REQUIRED_FLAGS = {"--headless", "--isolated", "--caps=vision"}
+REQUIRED_FLAGS = {"--headless", "--isolated", "--caps=vision", "--browser"}
+
+# The server default is chrome-for-testing; we pin the Playwright-bundled
+# chromium so the SKILL's `npx playwright install chromium` step matches.
+PINNED_BROWSER = "chromium"
 
 
 class TestClaudeCodeMcpConfig:
@@ -30,7 +34,9 @@ class TestClaudeCodeMcpConfig:
         assert not any("@latest" in arg for arg in args)
 
     def test_required_flags_present(self):
-        assert REQUIRED_FLAGS <= set(self._args())
+        args = self._args()
+        assert REQUIRED_FLAGS <= set(args)
+        assert args[args.index("--browser") + 1] == PINNED_BROWSER
 
     def test_runs_via_npx(self):
         config = json.loads((REPO_ROOT / ".mcp.json").read_text())
@@ -49,6 +55,7 @@ class TestOpenCodeMcpConfig:
         text = (REPO_ROOT / ".opencode" / "opencode.jsonc").read_text()
         for flag in REQUIRED_FLAGS:
             assert flag in text, flag
+        assert PINNED_BROWSER in text
 
 
 class TestUiParityCheckSkill:

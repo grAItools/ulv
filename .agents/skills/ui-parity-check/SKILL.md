@@ -25,9 +25,10 @@ parameter: the **target spec dir** the report belongs to (default
    the session and approve the server (`.mcp.json` for Claude Code,
    `.opencode/opencode.jsonc` for OpenCode) — do not work around a
    missing server. See ADR 0009.
-2. Browser binary: if navigation fails with a missing-browser error,
-   the user must run `npx playwright install chromium` once. Never run
-   installs from `make verify`.
+2. Browser binary: both configs pin `--browser chromium` (the server
+   default would be chrome-for-testing), so if navigation fails with a
+   missing-browser error, the user must run `npx playwright install
+   chromium` once. Never run installs from `make verify`.
 3. Never use `browser_run_code_unsafe` (ADR 0009); page-context
    `browser_evaluate` only.
 
