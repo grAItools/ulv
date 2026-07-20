@@ -19,12 +19,13 @@ parameter: the **target spec dir** the report belongs to (default
 
 ## Prerequisites — check before doing anything else
 
-1. **The `playwright` MCP server must be loaded and approved in THIS
-   session.** Check by listing its tools (they are prefixed
-   `browser_`). If they are absent, STOP and tell the user to restart
-   the session and approve the server (`.mcp.json` for Claude Code,
-   `.opencode/opencode.jsonc` for OpenCode) — do not work around a
-   missing server. See ADR 0009.
+1. **The `playwright` MCP server must be loaded in THIS session.**
+   Check by listing its tools (they are prefixed `browser_`). If they
+   are absent, STOP and tell the user to restart the session — under
+   Claude Code they must also approve the server when prompted (it
+   reads `.mcp.json`); OpenCode enables it via `.opencode/opencode.jsonc`
+   with no separate approval step. Do not work around a missing
+   server. See ADR 0009.
 2. Browser binary: both configs pin `--browser chromium` (the server
    default would be chrome-for-testing), so if navigation fails with a
    missing-browser error, the user must run `npx playwright install

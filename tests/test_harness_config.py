@@ -36,7 +36,9 @@ class TestClaudeCodeMcpConfig:
     def test_required_flags_present(self):
         args = self._args()
         assert REQUIRED_FLAGS <= set(args)
-        assert args[args.index("--browser") + 1] == PINNED_BROWSER
+        browser_value = args.index("--browser") + 1
+        assert browser_value < len(args), "--browser must be followed by a value"
+        assert args[browser_value] == PINNED_BROWSER
 
     def test_runs_via_npx(self):
         config = json.loads((REPO_ROOT / ".mcp.json").read_text())

@@ -42,9 +42,12 @@ synthetic TouchEvents). Rejected alternatives:
   place the single-definition-shared pattern cannot be a symlink — so
   `tests/test_harness_config.py` pins the identical version string in
   both to prevent drift.
-- Run flags: `--headless --isolated --caps=vision`. `--isolated`
-  keeps the browser profile in memory (no state leaks between runs);
-  `--caps=vision` provides the coordinate mouse tools.
+- Run flags: `--headless --isolated --caps=vision --browser chromium`.
+  `--isolated` keeps the browser profile in memory (no state leaks
+  between runs); `--caps=vision` provides the coordinate mouse tools;
+  `--browser chromium` pins the Playwright-bundled chromium (the server
+  default is chrome-for-testing) so the `npx playwright install
+  chromium` setup step matches what the server launches.
 - **`browser_run_code_unsafe` is never used.** Page-context
   `browser_evaluate` only (spec Decision 5).
 - Update policy: manual bump — edit both configs and the test

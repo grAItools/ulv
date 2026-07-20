@@ -26,7 +26,7 @@ session with no memory of this one.
 
 - **Browser-automation server**: `@playwright/mcp`, **pinned to
   0.0.78** (never `@latest`), run `--headless --isolated
-  --caps=vision`; `browser_run_code_unsafe` is never used
+  --caps=vision --browser chromium`; `browser_run_code_unsafe` is never used
   (page-context `browser_evaluate` only, spec Decision 5); browser
   binary via one-time `npx playwright install chromium` (or system
   Chrome with `--browser chrome`), never installed by `make verify`.
@@ -109,10 +109,11 @@ or package code is touched.
 2. Add `.mcp.json` at the repo root:
    `{"mcpServers": {"playwright": {"command": "npx", "args":
    ["@playwright/mcp@0.0.78", "--headless", "--isolated",
-   "--caps=vision"]}}}`.
+   "--caps=vision", "--browser", "chromium"]}}}`.
 3. Add the `"mcp"` key to `.opencode/opencode.jsonc`: `"playwright":
    {"type": "local", "command": ["npx", "@playwright/mcp@0.0.78",
-   "--headless", "--isolated", "--caps=vision"], "enabled": true}`,
+   "--headless", "--isolated", "--caps=vision", "--browser",
+   "chromium"], "enabled": true}`,
    with a comment noting the version is kept in lockstep with
    `.mcp.json` and pinned by `tests/test_harness_config.py`.
 4. Write `.agents/skills/ui-parity-check/SKILL.md` (house format per
@@ -218,7 +219,7 @@ or package code is touched.
 8. Add `tests/test_harness_config.py` (stdlib only): `.mcp.json` is
    valid JSON, its `playwright` entry's args contain exactly
    `@playwright/mcp@0.0.78` plus `--headless`, `--isolated`,
-   `--caps=vision`, and no `@latest`; the identical
+   `--caps=vision`, `--browser chromium`, and no `@latest`; the identical
    `@playwright/mcp@0.0.78` string appears in
    `.opencode/opencode.jsonc`; `.agents/skills/ui-parity-check/SKILL.md`
    exists and starts with frontmatter containing `name:` and
