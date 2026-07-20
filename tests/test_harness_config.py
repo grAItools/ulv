@@ -44,18 +44,33 @@ class TestClaudeCodeMcpConfig:
 
 
 class TestOpenCodeMcpConfig:
-    def test_same_pinned_version_in_lockstep(self):
-        # jsonc (comments) — no json.loads; a substring pin is all the
-        # guard needs and formatting churn cannot break it.
+    def _command(self):
+        # opencode.jsonc has comments, so it isn't valid JSON; rather than
+        # scan the whole file (where a pin mentioned only in a comment would
+        # pass), isolate the playwright MCP command array by shape and check
+        # the pins inside the actual invocation. Substring checks within the
+        # array stay tolerant of formatting churn.
         text = (REPO_ROOT / ".opencode" / "opencode.jsonc").read_text()
-        assert PINNED_SERVER in text
-        assert "@playwright/mcp@latest" not in text
+        match = re.search(
+            r'"playwright"\s*:\s*\{.*?"command"\s*:\s*\[(.*?)\]',
+            text,
+            re.DOTALL,
+        )
+        assert match, "playwright MCP command array not found in opencode.jsonc"
+        return match.group(1)
+
+    def test_same_pinned_version_in_lockstep(self):
+        assert PINNED_SERVER in self._command()
+        # a stray @latest anywhere in the file is a red flag regardless of block
+        assert "@playwright/mcp@latest" not in (
+            REPO_ROOT / ".opencode" / "opencode.jsonc"
+        ).read_text()
 
     def test_required_flags_present(self):
-        text = (REPO_ROOT / ".opencode" / "opencode.jsonc").read_text()
+        command = self._command()
         for flag in REQUIRED_FLAGS:
-            assert flag in text, flag
-        assert PINNED_BROWSER in text
+            assert flag in command, flag
+        assert PINNED_BROWSER in command
 
 
 class TestUiParityCheckSkill:
