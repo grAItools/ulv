@@ -44,6 +44,27 @@
     }
   },
 
+  // Browser-automation MCP server for agent-driven UI parity checks
+  // (ADR 0009). The version is kept in lockstep with .mcp.json (Claude
+  // Code's config for the same server) and pinned by
+  // tests/test_harness_config.py — bump both files and the test
+  // constant together.
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "@playwright/mcp@0.0.78",
+        "--headless",
+        "--isolated",
+        "--caps=vision",
+        "--browser",
+        "chromium"
+      ],
+      "enabled": true
+    }
+  },
+
   // Auto-format edited files — OpenCode's native `formatter`, which runs after
   // every write/edit (the analogue of Claude Code's PostToolUse format hook).
   // We route formatting through the same per-file entry point Claude Code uses
