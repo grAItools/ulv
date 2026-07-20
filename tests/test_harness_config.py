@@ -62,9 +62,10 @@ class TestOpenCodeMcpConfig:
     def test_same_pinned_version_in_lockstep(self):
         assert PINNED_SERVER in self._command()
         # a stray @latest anywhere in the file is a red flag regardless of block
-        assert "@playwright/mcp@latest" not in (
-            REPO_ROOT / ".opencode" / "opencode.jsonc"
-        ).read_text()
+        assert (
+            "@playwright/mcp@latest"
+            not in (REPO_ROOT / ".opencode" / "opencode.jsonc").read_text()
+        )
 
     def test_required_flags_present(self):
         command = self._command()
