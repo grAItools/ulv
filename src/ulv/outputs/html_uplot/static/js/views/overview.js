@@ -40,7 +40,14 @@ export function renderOverview(container, { data, series, time, zoom, onZoom }) 
     },
     series: [
       {},
-      ...series.map((s) => ({ stroke: s.stroke, width: 1, points: { show: false } })),
+      ...series.map((s) => ({
+        stroke: s.stroke,
+        width: 1,
+        points: { show: false },
+        // mirror the main chart's legend-hidden state so a series the
+        // user hid there is not still drawn in the ranger
+        show: s.show !== false,
+      })),
     ],
     plugins: [
       {

@@ -5,7 +5,7 @@
 
 import { renderNav } from "./nav.js";
 import { readState, writeState } from "./state.js";
-import { renderGraphView } from "./views/graph.js";
+import { destroyGraph, renderGraphView } from "./views/graph.js";
 import { destroyThumbnails, renderGridView } from "./views/grid.js";
 import { renderListView } from "./views/list.js";
 
@@ -41,6 +41,11 @@ async function render() {
     // zero residue on view switch: thumbnail charts are only retained
     // until destroyed (window-listener + registry inside uPlot)
     destroyThumbnails();
+  }
+  if (active !== "graph") {
+    // symmetric to the thumbnails above: the graph's uPlot chart and
+    // overview hold window resize/dppxchange listeners until destroyed
+    destroyGraph();
   }
   if (active === "list") {
     await renderListView(main, siteIndex, state);

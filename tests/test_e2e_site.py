@@ -72,7 +72,16 @@ def _crawl(site: Path) -> None:
             for directory in [*manifest["dirs"], manifest["summary_dir"]]:
                 url = base + urllib.parse.quote(directory) + "/"
                 assert urllib.request.urlopen(url).status == 200, directory
-        if (site / "summarygrid.js").is_file():
+        # The vendored html frontend always ships summarygrid.js; the
+        # html-uplot frontend has none (its grid is manifest-driven,
+        # covered by test_bmf_manifest_thumbnails_reachable_on_uplot_site).
+        # Key the crawl on graphdisplay.js — a positive marker of the
+        # vendored frontend — so a vanished summarygrid.js fails loudly
+        # instead of the guard silently skipping the check.
+        if (site / "graphdisplay.js").is_file():
+            assert (site / "summarygrid.js").is_file(), (
+                "vendored frontend shipped without summarygrid.js"
+            )
             _crawl_grid_summaries(site, base)
     finally:
         server.shutdown()

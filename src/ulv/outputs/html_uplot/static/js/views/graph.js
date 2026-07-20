@@ -23,6 +23,25 @@ const PALETTE = [
 let currentChart = null;
 let currentOverview = null;
 let currentWrap = null;
+// Monotonic render id: rapid hash changes can start a second render
+// while the first is still awaiting its graph fetches; only the newest
+// may create charts (see renderGraphView).
+let renderToken = 0;
+
+// Tear down the graph's uPlot instances and their window listeners.
+// Exported so main.js can call it when switching away from the graph
+// view — symmetric to destroyThumbnails for the grid.
+export function destroyGraph() {
+  if (currentChart) {
+    currentChart.destroy();
+    currentChart = null;
+  }
+  if (currentOverview) {
+    currentOverview.destroy();
+    currentOverview = null;
+  }
+  currentWrap = null;
+}
 
 window.addEventListener(
   "resize",
@@ -168,6 +187,11 @@ function unitsOf(benchmark) {
 
 function tooltipPlugin(index, revs, units) {
   let tip = null;
+  // Series labels and units are fixed for the chart's lifetime; escape
+  // them once instead of allocating a throwaway DOM node per series on
+  // every cursor move (setCursor is a hot path).
+  const escapedUnits = units ? escapeHtml(units) : "";
+  let escapedLabels = [];
   // uPlot's mouseup applies a drag-zoom and synchronously resets
   // u.select to zero width before the DOM click event dispatches, so
   // the click handler cannot inspect u.select. The setSelect hook does
@@ -182,6 +206,7 @@ function tooltipPlugin(index, revs, units) {
   return {
     hooks: {
       init(u) {
+        escapedLabels = u.series.map((s) => (s.label ? escapeHtml(s.label) : ""));
         tip = el("div", "chart-tip");
         tip.hidden = true;
         u.over.append(tip);
@@ -233,8 +258,8 @@ function tooltipPlugin(index, revs, units) {
           const value = u.data[si][idx];
           if (value != null) {
             lines.push(
-              `${escapeHtml(series.label)}: ${value}` +
-                (units ? ` ${escapeHtml(units)}` : ""),
+              `${escapedLabels[si]}: ${value}` +
+                (escapedUnits ? ` ${escapedUnits}` : ""),
             );
           }
         });
@@ -326,14 +351,8 @@ function controlsPanel(index, benchmark, state, selections, perAxis) {
 }
 
 export async function renderGraphView(container, index, state) {
-  if (currentChart) {
-    currentChart.destroy();
-    currentChart = null;
-  }
-  if (currentOverview) {
-    currentOverview.destroy();
-    currentOverview = null;
-  }
+  const token = ++renderToken;
+  destroyGraph();
 
   const benchmark = index.benchmarks[state.benchmark];
   if (!benchmark) {
@@ -358,6 +377,14 @@ export async function renderGraphView(container, index, state) {
   const graphs = await Promise.all(
     entryIndices.map((i) => fetchGraph(graphUrl(index, i, state.benchmark))),
   );
+
+  // A newer render superseded this one while its fetches were in flight
+  // (its own container.replaceChildren already detached our chartWrap);
+  // bail before creating a second uPlot that would leak and stack a
+  // duplicate overview ranger.
+  if (token !== renderToken) {
+    return;
+  }
 
   const revSet = new Set();
   graphs.forEach((graph) => {

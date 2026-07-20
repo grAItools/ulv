@@ -39,8 +39,11 @@ export function readState() {
         .getAll(key)
         .map((value) => (value === NONE ? null : value));
     } else if (key.startsWith(BENCH_PARAM_PREFIX)) {
-      const position = Number(key.slice(BENCH_PARAM_PREFIX.length));
-      if (Number.isInteger(position)) {
+      const raw = key.slice(BENCH_PARAM_PREFIX.length);
+      const position = Number(raw);
+      // Number("") === 0, so a bare "b-" key would masquerade as
+      // position 0 and clobber a real selection; require actual digits.
+      if (raw !== "" && Number.isInteger(position) && position >= 0) {
         state.benchParams[position] = params
           .getAll(key)
           .map(Number)

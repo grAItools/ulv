@@ -41,8 +41,9 @@ def build_asv_site(tmp_path: Path, generator: str | None = None) -> Path:
     return out_dir
 
 
-def build_bmf_site(tmp_path: Path, generator: str | None = None) -> Path:
-    """Machine-less BMF site with testbed decomposition."""
+def _write_bmf_data(tmp_path: Path) -> Path:
+    """Materialize the shared BMF data directory (benchmark JSONs +
+    manifest) both BMF site builders read from; returns its path."""
     data = tmp_path / "bmf-data"
     data.mkdir(exist_ok=True)
     manifest = {}
@@ -60,6 +61,12 @@ def build_bmf_site(tmp_path: Path, generator: str | None = None) -> Path:
         )
         manifest[name] = {"commit": commit, "date": date, "testbed": testbed}
     (data / "manifest.json").write_text(json.dumps(manifest))
+    return data
+
+
+def build_bmf_site(tmp_path: Path, generator: str | None = None) -> Path:
+    """Machine-less BMF site with testbed decomposition."""
+    data = _write_bmf_data(tmp_path)
     beds = tmp_path / "beds.toml"
     beds.write_text(
         'factors = ["os", "arch"]\n'
@@ -93,8 +100,7 @@ def build_bmf_site(tmp_path: Path, generator: str | None = None) -> Path:
 
 def build_opaque_bmf_site(tmp_path: Path, generator: str | None = None) -> Path:
     """Same BMF data, no testbed decomposition: single opaque axis."""
-    build_bmf_site(tmp_path)
-    data = tmp_path / "bmf-data"
+    data = _write_bmf_data(tmp_path)
     out_dir = tmp_path / "bmf-opaque-site"
     assert (
         main(
