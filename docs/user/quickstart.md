@@ -50,6 +50,25 @@ Then open <http://127.0.0.1:8000> in your browser.
 
 Press `Ctrl+C` to stop the server.
 
+## Choosing a frontend
+
+By default the site ships the classic ASV browsing UI (the `html`
+generator). A second, lightweight mobile-friendly frontend built on
+uPlot is available as `html-uplot` (under 100 KB of frontend assets):
+
+```bash
+uv run ulv build \
+  -i asv \
+  --input-dir tests/fixtures/asv_results \
+  -o /tmp/ulv-quickstart-uplot \
+  --generator html-uplot
+uv run ulv serve /tmp/ulv-quickstart-uplot
+```
+
+The vendored ASV frontend remains the default; builds without
+`--generator` are unchanged. The same choice is available as the
+`output_generator` key in the [config file](config.md).
+
 ## Next steps
 
 - [ASV Format](asv.md) — Learn how to use your own ASV benchmark results

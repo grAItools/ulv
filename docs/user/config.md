@@ -73,6 +73,7 @@ uv run ulv build
 | `input_format` | string | Input format: `asv`, `bmf`, or `bencher-api` |
 | `input_dir` | string | Directory containing benchmark data |
 | `output_dir` | string | Directory to write the generated site |
+| `output_generator` | string | Frontend: `html` (vendored ASV UI, default) or `html-uplot` (lightweight uPlot UI); CLI flag: `--generator` |
 | `project` | string | Project name shown in the navbar |
 | `project_url` | string | URL the project name links to |
 | `show_commit_url` | string | URL prefix for commit links |

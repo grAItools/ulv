@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>benchmarks</title>
+<link rel="stylesheet" href="vendor/uPlot.min.css">
+<link rel="stylesheet" href="app.css">
+<script src="vendor/uPlot.iife.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <h1 id="project-title"><a id="project-link" href="#">benchmarks</a></h1>
+  <nav id="view-nav" aria-label="Views">
+    <a href="#view=grid" data-view="grid">Grid</a>
+    <a href="#view=list" data-view="list">List</a>
+  </nav>
+  <span id="generated-at" class="muted"></span>
+</header>
+<div class="layout">
+  <nav id="bench-nav" aria-label="Benchmarks"></nav>
+  <main id="main-pane" class="content">
+    <p id="status" class="muted">Loading&hellip;</p>
+  </main>
+</div>
+</body>
+</html>

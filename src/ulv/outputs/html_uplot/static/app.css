@@ -1,0 +1,252 @@
+/* App shell for the html-uplot frontend: framework-free, responsive.
+ * Two-pane layout (nav | content) that collapses to a single column on
+ * narrow viewports so nothing needs horizontal page scrolling. */
+
+:root {
+  --border: #d0d4da;
+  --muted: #667;
+  --accent: #1a5fb4;
+  --bg-alt: #f5f6f8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color: #1c1e22;
+}
+
+.site-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.site-header a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+#view-nav a {
+  color: var(--accent);
+  text-decoration: none;
+  margin-right: 0.6rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+}
+
+#view-nav a.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Grid view: responsive card grid, thumbnails lazy-rendered. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.6rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: var(--accent);
+}
+
+.card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.card .thumb {
+  min-height: 60px;
+}
+
+/* List view: sortable headers. */
+.list-table th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.list-table tbody tr {
+  cursor: pointer;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) 1fr;
+  min-height: calc(100vh - 3rem);
+}
+
+#bench-nav {
+  border-right: 1px solid var(--border);
+  padding: 0.5rem;
+  overflow-y: auto;
+  background: var(--bg-alt);
+}
+
+#bench-nav ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0.9rem;
+}
+
+#bench-nav > ul {
+  padding-left: 0;
+}
+
+#bench-nav li {
+  margin: 0.1rem 0;
+  overflow-wrap: anywhere;
+}
+
+#bench-nav .group > span {
+  font-weight: 600;
+  cursor: default;
+}
+
+#bench-nav a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+#bench-nav a:hover {
+  text-decoration: underline;
+}
+
+.content {
+  padding: 1rem;
+  min-width: 0;
+}
+
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+}
+
+.data-table tbody tr:nth-child(odd) {
+  background: var(--bg-alt);
+}
+
+/* Graph view: selector panels, chart, hover tooltip. */
+
+.bench-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.axis-group {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin: 0;
+  padding: 0.25rem 0.5rem 0.45rem;
+}
+
+.axis-group legend {
+  color: var(--muted);
+  font-size: 0.75rem;
+  padding: 0 0.25rem;
+}
+
+.sel {
+  font: inherit;
+  font-size: 0.85rem;
+  margin: 0 0.15rem 0.15rem 0;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.sel.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.chart-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.overview-wrap {
+  margin-top: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* Horizontal touch gestures belong to the chart (pan/pinch handled by
+ * js/touch.js); vertical swipes keep scrolling the page. */
+.chart-wrap .u-over,
+.overview-wrap .u-over {
+  touch-action: pan-y;
+}
+
+.chart-tip {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Snapshot page has no nav pane; center its lone content column. */
+.snapshot .content {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 40rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  #bench-nav {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 40vh;
+  }
+}

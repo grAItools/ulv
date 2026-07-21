@@ -8,6 +8,15 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- `ulv build --generator html-uplot` (config key `output_generator`) selects
+  a new self-authored uPlot frontend: under 100 KB of shipped assets,
+  mobile-responsive, machine-less datasets first-class, and Bencher measure
+  units shown with plotted values. The vendored ASV frontend remains the
+  default. See ADR 0008.
+- `index.json` gains an additive `graph_paths` manifest (graph directories
+  parallel to `graph_param_list`, summary directory, benchmark name → file
+  stem) so frontends can locate every graph file without recomputing
+  sanitized paths client-side; existing consumers are unaffected.
 - Continuous integration on GitHub Actions: every pull request and push to
   `main` is gated by lint, format-check, tests (Python 3.12–3.14), and the
   docs build; PR titles are validated against Conventional Commits; tagging

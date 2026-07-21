@@ -18,7 +18,7 @@ ulv [-h] [--version] {build,serve} ...
 Read benchmark results and generate a static HTML site. Every flag below can also be set in the config file (snake_case key); flags win over the file.
 
 ```
-ulv build [-h] [--config FILE] [--input-format INPUT_FORMAT] [--input-dir INPUT_DIR] [--output-dir OUTPUT_DIR] [--project PROJECT] [--project-url PROJECT_URL] [--show-commit-url SHOW_COMMIT_URL] [--repo REPO] [--branches BRANCHES] [--manifest MANIFEST] [--filename-pattern FILENAME_PATTERN] [--commit COMMIT] [--date DATE] [--branch BRANCH] [--testbed TESTBED] [--testbeds-file FILE] [--allow-unmapped] [--bencher-url BENCHER_URL] [--bencher-project BENCHER_PROJECT] [--bencher-token BENCHER_TOKEN]
+ulv build [-h] [--config FILE] [--input-format INPUT_FORMAT] [--input-dir INPUT_DIR] [--output-dir OUTPUT_DIR] [--generator GENERATOR] [--project PROJECT] [--project-url PROJECT_URL] [--show-commit-url SHOW_COMMIT_URL] [--repo REPO] [--branches BRANCHES] [--manifest MANIFEST] [--filename-pattern FILENAME_PATTERN] [--commit COMMIT] [--date DATE] [--branch BRANCH] [--testbed TESTBED] [--testbeds-file FILE] [--allow-unmapped] [--bencher-url BENCHER_URL] [--bencher-project BENCHER_PROJECT] [--bencher-token BENCHER_TOKEN]
 ```
 
 ### General options
@@ -30,6 +30,7 @@ ulv build [-h] [--config FILE] [--input-format INPUT_FORMAT] [--input-dir INPUT_
 | `-i`, `--input-format` | string |  | input format name (e.g. 'asv') |
 | `--input-dir` | string |  | directory containing the benchmark result data |
 | `-o`, `--output-dir` | string |  | directory to write the generated site to |
+| `--generator` | string |  | output generator name (default: html, the vendored ASV frontend; 'html-uplot' selects the uPlot frontend) |
 
 ### Site branding
 

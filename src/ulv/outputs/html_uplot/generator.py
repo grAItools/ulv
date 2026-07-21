@@ -1,10 +1,11 @@
-"""Static HTML site generator using the vendored ASV frontend.
+"""Static HTML site generator with a self-authored uPlot frontend.
 
-Mirrors the output contract of asv's publish step (publish.py:283-310):
-the vendored frontend boots from `info.json`, then `index.json`, then
-fetches graph JSON files by recomputing paths client-side. The data
-pipeline and the atomic build/swap live in `ulv.outputs.common`; this
-module only supplies the vendored static tree and the snapshot page.
+Emits the same data files as the vendored `html` generator — the
+shared pipeline in `ulv.outputs.common` — under a frontend this
+project owns end to end: plain ES modules and CSS plus a pinned uPlot
+build (ADR 0008). The frontend locates every graph file through the
+`graph_paths` manifest in `index.json` instead of recomputing
+sanitized paths client-side.
 """
 
 from __future__ import annotations
@@ -21,16 +22,16 @@ from ulv.outputs.common import (
 )
 
 
-class HtmlOutputGenerator(HtmlSiteGeneratorBase):
-    """Built-in `html` output generator."""
+class HtmlUplotOutputGenerator(HtmlSiteGeneratorBase):
+    """Built-in `html-uplot` output generator."""
 
-    name = "html"
-    static_package = "ulv.outputs.html"
+    name = "html-uplot"
+    static_package = "ulv.outputs.html_uplot"
 
     def _write_snapshot(self, build_dir: Path, dataset: Dataset) -> None:
-        """Non-time-series view for a lone snapshot (spec Decision 3):
-        one table row per benchmark × measure (× testbed), values and
-        bounds as-is, absent bounds as empty cells — never zero."""
+        """Zero-JS snapshot page styled by the generator's own CSS:
+        one table row per benchmark × measure (× testbed), absent
+        bounds as empty cells — never zero."""
         headers, table_rows = snapshot_table(dataset)
         head = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
         rows = [
@@ -43,29 +44,30 @@ class HtmlOutputGenerator(HtmlSiteGeneratorBase):
         if commit is not None:
             commit_hash, when = commit
             subtitle = (
-                f'<p class="text-muted">commit '
+                f'<p class="muted">commit '
                 f"{html.escape(commit_hash)} {html.escape(when)}</p>"
             )
 
         title = html.escape(dataset.project or "benchmarks")
         page = f"""<!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
-<link rel="stylesheet" href="vendor/css/bootstrap.min.css">
+<link rel="stylesheet" href="app.css">
 </head>
-<body>
-<div class="container">
-<h1>{title}</h1>
+<body class="snapshot">
+<header class="site-header"><h1>{title}</h1></header>
+<main class="content">
 {subtitle}
-<table class="table table-striped table-hover">
+<table class="data-table">
 <thead><tr>{head}</tr></thead>
 <tbody>
 {chr(10).join(rows)}
 </tbody>
 </table>
-</div>
+</main>
 </body>
 </html>
 """

@@ -17,8 +17,9 @@ DOCS = [
 ]
 
 # Settings fields whose flag spelling is not the mechanical kebab-case
-# derivation: the structured [testbeds] table is supplied via a file.
-MAPPED_FLAGS = {"testbeds": "--testbeds-file"}
+# derivation: the structured [testbeds] table is supplied via a file,
+# and the output generator keeps the shorter --generator spelling.
+MAPPED_FLAGS = {"testbeds": "--testbeds-file", "output_generator": "--generator"}
 
 
 def _subparser(name: str):
