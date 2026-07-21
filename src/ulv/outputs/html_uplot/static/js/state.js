@@ -22,7 +22,13 @@ export function readState() {
     log: params.get("log") === "1",
     x: params.get("x") === "even" ? "even" : "date",
     zoom: null,
-    hidden: params.getAll("hide").map(Number).filter(Number.isInteger),
+    // Drop empty "hide" values before mapping: Number("") === 0 would
+    // otherwise pass Number.isInteger and silently hide series 0.
+    hidden: params
+      .getAll("hide")
+      .filter((value) => value !== "")
+      .map(Number)
+      .filter(Number.isInteger),
     axes: {},
     benchParams: {},
   };

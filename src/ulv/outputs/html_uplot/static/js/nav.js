@@ -2,6 +2,8 @@
 // module.Class.bench convention); names without dots — e.g. Bencher's
 // "adapter::json (latency)" — are top-level leaves.
 
+import { el } from "./dom.js";
+
 export function benchmarkTree(names) {
   const root = { groups: new Map(), leaves: [] };
   for (const name of names) {
@@ -19,20 +21,17 @@ export function benchmarkTree(names) {
 }
 
 function renderNode(node, onSelect) {
-  const list = document.createElement("ul");
+  const list = el("ul");
   for (const [label, child] of node.groups) {
-    const item = document.createElement("li");
-    item.className = "group";
-    const caption = document.createElement("span");
-    caption.textContent = label;
+    const item = el("li", "group");
+    const caption = el("span", "", label);
     item.append(caption, renderNode(child, onSelect));
     list.append(item);
   }
   for (const name of node.leaves) {
-    const item = document.createElement("li");
-    const link = document.createElement("a");
+    const item = el("li");
     // leaf label: the last dotted segment; full name travels in the hash
-    link.textContent = name.split(".").at(-1);
+    const link = el("a", "", name.split(".").at(-1));
     link.href = `#benchmark=${encodeURIComponent(name)}`;
     link.addEventListener("click", (event) => {
       event.preventDefault();

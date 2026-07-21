@@ -9,6 +9,7 @@ page rendering.
 
 from __future__ import annotations
 
+import importlib.resources
 import itertools
 import json
 import os
@@ -35,6 +36,47 @@ PAGES = [
 ]
 
 HASH_LENGTH = 8
+
+
+class HtmlSiteGeneratorBase:
+    """Shared scaffolding for the HTML output generators.
+
+    Both frontends emit the same data contract and build atomically;
+    they differ only in the static package they ship and the snapshot
+    page they render for a no-time-axis dataset. Subclasses set `name`
+    and `static_package` and implement `_write_snapshot`.
+    """
+
+    name: str
+    static_package: str
+
+    def generate(self, dataset: Dataset, out_dir, options) -> None:
+        out_dir = Path(out_dir)
+        options = options or {}
+
+        def populate(build_dir: Path) -> None:
+            self._copy_static(build_dir)
+            (build_dir / "graphs").mkdir(exist_ok=True)
+            self._write_site_json(build_dir, dataset, options)
+
+        atomic_site_build(out_dir, populate)
+
+    def _copy_static(self, build_dir: Path) -> None:
+        static_root = importlib.resources.files(self.static_package) / "static"
+        with importlib.resources.as_file(static_root) as static_path:
+            shutil.copytree(static_path, build_dir)
+
+    def _write_site_json(self, build_dir: Path, dataset: Dataset, options) -> None:
+        if not dataset.has_time_axis:
+            # A single revision has no history to graph: the site becomes
+            # a static table and index.html a redirect, so the entry
+            # point is index.html either way.
+            self._write_snapshot(build_dir, dataset)
+            return
+        write_site_data(build_dir, dataset, options)
+
+    def _write_snapshot(self, build_dir: Path, dataset: Dataset) -> None:
+        raise NotImplementedError
 
 
 def _js_timestamp(moment) -> int:
@@ -319,6 +361,19 @@ def snapshot_table(dataset: Dataset) -> tuple[list[str], list[list[str]]]:
         headers.append("Testbed")
     headers += ["Value", "Lower bound", "Upper bound"]
     return headers, rows
+
+
+def snapshot_redirect_html() -> str:
+    """The index.html for a snapshot site: a zero-delay redirect to
+    snapshot.html, shared verbatim by both HTML generators so the two
+    entry pages never drift."""
+    return (
+        '<!doctype html>\n<html>\n<head>\n<meta charset="utf-8">\n'
+        '<meta http-equiv="refresh" content="0; url=snapshot.html">\n'
+        "</head>\n<body>\n"
+        '<a href="snapshot.html">Benchmark snapshot</a>\n'
+        "</body>\n</html>\n"
+    )
 
 
 def snapshot_commit(dataset: Dataset) -> tuple[str, str] | None:

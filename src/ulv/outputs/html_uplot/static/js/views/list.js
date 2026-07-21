@@ -3,9 +3,15 @@
 // step-detection columns (prev_value / change_rev in the rows data)
 // are dropped — ulv always emits null for them (spec Decision 5).
 
+import { el } from "../dom.js";
 import { fetchGraph, summaryRowsUrl } from "../data.js";
 import { writeState } from "../state.js";
-import { axisSelections, selectedEntryIndices } from "./graph.js";
+import { axisSelections, selectedEntryIndices, unitsOf } from "./graph.js";
+
+// Monotonic render id, mirroring graph.js: a hashchange during the
+// in-flight summary fetch starts a second render, and only the newest
+// may paint (see renderListView).
+let renderToken = 0;
 
 const COLUMNS = [
   ["pretty_name", "Benchmark"],
@@ -39,48 +45,51 @@ function formatValue(value, units) {
 }
 
 export async function renderListView(container, index, state) {
+  const token = ++renderToken;
   const selections = axisSelections(index, state);
   const entryIndices = selectedEntryIndices(index, selections);
-  const message = document.createElement("p");
-  message.className = "muted";
   if (!entryIndices.length) {
-    message.textContent = "No environment matches the current selection.";
-    container.replaceChildren(message);
+    container.replaceChildren(
+      el("p", "muted", "No environment matches the current selection."),
+    );
     return;
   }
 
   // one rows file per environment directory; like the vendored list
   // view, show the first matching combination
   const rows = await fetchGraph(summaryRowsUrl(index, entryIndices[0]));
+  // A newer render (e.g. rapid back/forward) superseded this one while
+  // its fetch was in flight; bail so the stale rows never paint over it.
+  if (token !== renderToken) {
+    return;
+  }
   if (!rows || !rows.length) {
-    message.textContent = "No data for this selection.";
-    container.replaceChildren(message);
+    container.replaceChildren(el("p", "muted", "No data for this selection."));
     return;
   }
 
-  const table = document.createElement("table");
-  table.className = "data-table list-table";
-  const head = document.createElement("tr");
+  const table = el("table", "data-table list-table");
+  const head = el("tr");
   let sortKey = "pretty_name";
   let direction = 1;
 
-  const body = document.createElement("tbody");
+  const body = el("tbody");
   const renderRows = () => {
     rows.sort(compareBy(sortKey, direction));
     body.replaceChildren(
       ...rows.map((row) => {
-        const units =
-          (index.benchmarks[row.name] || {}).units ||
-          (index.benchmarks[row.name] || {}).unit ||
-          "";
-        const tr = document.createElement("tr");
+        const units = unitsOf(index.benchmarks[row.name] || {});
+        const tr = el("tr");
         for (const [key] of COLUMNS) {
-          const td = document.createElement("td");
-          td.textContent =
-            key === "pretty_name"
-              ? row.pretty_name
-              : formatValue(row[key], units);
-          tr.append(td);
+          tr.append(
+            el(
+              "td",
+              "",
+              key === "pretty_name"
+                ? row.pretty_name
+                : formatValue(row[key], units),
+            ),
+          );
         }
         tr.addEventListener("click", () => {
           writeState({
@@ -97,8 +106,7 @@ export async function renderListView(container, index, state) {
   };
 
   for (const [key, label] of COLUMNS) {
-    const th = document.createElement("th");
-    th.textContent = label;
+    const th = el("th", "", label);
     th.addEventListener("click", () => {
       direction = key === sortKey ? -direction : 1;
       sortKey = key;
@@ -107,7 +115,7 @@ export async function renderListView(container, index, state) {
     head.append(th);
   }
 
-  const thead = document.createElement("thead");
+  const thead = el("thead");
   thead.append(head);
   table.append(thead, body);
   renderRows();

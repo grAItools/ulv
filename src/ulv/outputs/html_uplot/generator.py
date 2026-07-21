@@ -11,48 +11,22 @@ sanitized paths client-side.
 from __future__ import annotations
 
 import html
-import importlib.resources
-import shutil
 from pathlib import Path
 
 from ulv.model import Dataset
 from ulv.outputs.common import (
-    atomic_site_build,
+    HtmlSiteGeneratorBase,
     snapshot_commit,
+    snapshot_redirect_html,
     snapshot_table,
-    write_site_data,
 )
 
 
-class HtmlUplotOutputGenerator:
+class HtmlUplotOutputGenerator(HtmlSiteGeneratorBase):
     """Built-in `html-uplot` output generator."""
 
     name = "html-uplot"
-
-    def generate(self, dataset: Dataset, out_dir, options) -> None:
-        out_dir = Path(out_dir)
-        options = options or {}
-
-        def populate(build_dir: Path) -> None:
-            self._copy_static(build_dir)
-            (build_dir / "graphs").mkdir(exist_ok=True)
-            self._write_site_json(build_dir, dataset, options)
-
-        atomic_site_build(out_dir, populate)
-
-    def _copy_static(self, build_dir: Path) -> None:
-        static_root = importlib.resources.files("ulv.outputs.html_uplot") / "static"
-        with importlib.resources.as_file(static_root) as static_path:
-            shutil.copytree(static_path, build_dir)
-
-    def _write_site_json(self, build_dir: Path, dataset: Dataset, options) -> None:
-        if not dataset.has_time_axis:
-            # A single revision has no history to graph: the site
-            # becomes a static table and index.html a redirect, so the
-            # entry point is index.html either way.
-            self._write_snapshot(build_dir, dataset)
-            return
-        write_site_data(build_dir, dataset, options)
+    static_package = "ulv.outputs.html_uplot"
 
     def _write_snapshot(self, build_dir: Path, dataset: Dataset) -> None:
         """Zero-JS snapshot page styled by the generator's own CSS:
@@ -98,11 +72,4 @@ class HtmlUplotOutputGenerator:
 </html>
 """
         (build_dir / "snapshot.html").write_text(page)
-        redirect = (
-            '<!doctype html>\n<html>\n<head>\n<meta charset="utf-8">\n'
-            '<meta http-equiv="refresh" content="0; url=snapshot.html">\n'
-            "</head>\n<body>\n"
-            '<a href="snapshot.html">Benchmark snapshot</a>\n'
-            "</body>\n</html>\n"
-        )
-        (build_dir / "index.html").write_text(redirect)
+        (build_dir / "index.html").write_text(snapshot_redirect_html())

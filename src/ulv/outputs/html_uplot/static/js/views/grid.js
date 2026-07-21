@@ -3,6 +3,7 @@
 // IntersectionObserver — only cards scrolled into view fetch their
 // summary file (from the manifest's summary_dir + stem, see data.js).
 
+import { el } from "../dom.js";
 import { fetchGraph, summaryUrl } from "../data.js";
 import { writeState } from "../state.js";
 
@@ -70,18 +71,14 @@ export function renderGridView(container, index, state) {
     { rootMargin: "200px" },
   );
 
-  const grid = document.createElement("div");
-  grid.className = "grid";
+  const grid = el("div", "grid");
   for (const name of Object.keys(index.benchmarks).sort()) {
     const benchmark = index.benchmarks[name];
-    const card = document.createElement("article");
-    card.className = "card";
+    const card = el("article", "card");
     card.dataset.name = name;
 
-    const title = document.createElement("h3");
-    title.textContent = benchmark.pretty_name || name;
-    const thumb = document.createElement("div");
-    thumb.className = "thumb";
+    const title = el("h3", "", benchmark.pretty_name || name);
+    const thumb = el("div", "thumb");
     card.append(title, thumb);
 
     card.addEventListener("click", () => {

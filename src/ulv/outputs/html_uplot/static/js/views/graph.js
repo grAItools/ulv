@@ -4,6 +4,7 @@
 // (environment entry × benchmark-param combination) permutation.
 // All mutations write the URL hash; rendering starts from state.
 
+import { el } from "../dom.js";
 import { fetchGraph, graphUrl } from "../data.js";
 import { NONE, writeState } from "../state.js";
 import { touchPlugin } from "../touch.js";
@@ -68,17 +69,6 @@ window.addEventListener(
   },
   { passive: true },
 );
-
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) {
-    node.className = className;
-  }
-  if (text !== undefined) {
-    node.textContent = text;
-  }
-  return node;
-}
 
 function escapeHtml(text) {
   const span = document.createElement("span");
@@ -181,7 +171,7 @@ function seriesLabel(index, entryIdx, varying, combo) {
   return parts.join(" ") || "value";
 }
 
-function unitsOf(benchmark) {
+export function unitsOf(benchmark) {
   return benchmark.units || benchmark.unit || "";
 }
 
@@ -249,7 +239,9 @@ function tooltipPlugin(index, revs, units) {
         const date = index.revision_to_date[revs[idx]];
         const lines = [
           `<strong>${escapeHtml(hash.slice(0, index.hash_length))}</strong>` +
-            (date ? ` ${new Date(date).toISOString().slice(0, 10)}` : ""),
+            (date != null
+              ? ` ${new Date(date).toISOString().slice(0, 10)}`
+              : ""),
         ];
         u.series.forEach((series, si) => {
           if (si === 0 || series.show === false) {
@@ -378,11 +370,13 @@ export async function renderGraphView(container, index, state) {
     entryIndices.map((i) => fetchGraph(graphUrl(index, i, state.benchmark))),
   );
 
-  // A newer render superseded this one while its fetches were in flight
-  // (its own container.replaceChildren already detached our chartWrap);
-  // bail before creating a second uPlot that would leak and stack a
-  // duplicate overview ranger.
-  if (token !== renderToken) {
+  // Something rendered over this one while its fetches were in flight —
+  // either a newer graph render (renderToken bumped) or a switch to the
+  // grid/list view (main.js's container.replaceChildren detached our
+  // chartWrap without touching renderToken). Either way, bail before
+  // creating a second uPlot that would leak and append a stray overview
+  // ranger into the now-live view.
+  if (token !== renderToken || !chartWrap.isConnected) {
     return;
   }
 
@@ -399,10 +393,16 @@ export async function renderGraphView(container, index, state) {
   }
   const revPos = new Map(revs.map((rev, i) => [rev, i]));
 
-  const xs =
-    state.x === "date"
-      ? revs.map((rev) => (index.revision_to_date[rev] ?? rev * 1000) / 1000)
-      : revs.map((_, i) => i);
+  // A real time axis needs a date for every plotted revision. If any is
+  // missing (e.g. Bencher data with no commit dates), a `time:true`
+  // scale would strand those points at the Unix epoch, so fall back to
+  // even index spacing — the same layout as the explicit "even x-axis".
+  const useTimeAxis =
+    state.x === "date" && revs.every((rev) => index.revision_to_date[rev] != null);
+
+  const xs = useTimeAxis
+    ? revs.map((rev) => index.revision_to_date[rev] / 1000)
+    : revs.map((_, i) => i);
 
   const hidden = new Set(state.hidden || []);
   const data = [xs];
@@ -465,11 +465,11 @@ export async function renderGraphView(container, index, state) {
     width: Math.max(chartWrap.clientWidth || container.clientWidth, 280),
     height: 380,
     scales: {
-      x: { time: state.x === "date" },
+      x: { time: useTimeAxis },
       y: state.log ? { distr: 3 } : {},
     },
     axes: [
-      state.x === "even"
+      !useTimeAxis
         ? {
             values: (u, splits) =>
               splits.map((s) =>
@@ -528,7 +528,7 @@ export async function renderGraphView(container, index, state) {
   currentOverview = renderOverview(container, {
     data,
     series: seriesDefs.slice(1),
-    time: state.x === "date",
+    time: useTimeAxis,
     zoom: state.zoom,
     onZoom: persistZoom,
   });
